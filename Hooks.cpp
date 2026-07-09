@@ -40,7 +40,12 @@ static bool IsBlacklisted(const wchar_t* name, const DropConfig& cfg)
 {
     if (!name || name[0] == 0) return false;
     if (!cfg.pillarFilterEnabled) return false;
-    if (wcsstr(name, L"Relic") != nullptr) return false;
+
+    // 只处理 SceneObj_DropItem 前缀, 其他一律放行
+    if (wcsstr(name, L"SceneObj_DropItem") != name) return false;
+
+    // 圣遗物自动放行
+    if (wcsstr(name, L"SceneObj_DropItem_Relic_Lv") == name) return false;
 
     for (auto& n : cfg.filterNames)
     {
