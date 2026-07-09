@@ -1,0 +1,36 @@
+# Visual Studio
+.vs/
+*.sln.docstates
+*.user
+*.suo
+
+# Build output
+x64/
+Release/
+Debug/
+*.exe
+*.dll
+*.pdb
+*.ilk
+*.lib
+*.exp
+*.obj
+*.idb
+*.pch
+*.tlog
+*.log
+*.recipe
+*.lastbuildstate
+ipch/
+
+# MinHook prebuilt libs (we use source now)
+MinHook/libMinHook.x64.lib
+MinHook/libMinHook.x86.lib
+
+# Config (user-specific)
+Config/Drop.ini
+
+# IDE
+*.opendb
+*.db
+*.opendb2
