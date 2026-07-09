@@ -2,13 +2,15 @@
 
 ## 功能
 
-通过 Hook 游戏内函数，按黑名单/白名单屏蔽指定掉落物的光柱和拾取提示框。
+按黑名单/白名单屏蔽指定掉落物的光柱和拾取提示框。
 
 ## 使用
 
 1. 用注入器把 `Drop.dll` 注入 YuanShen.exe
 2. `Drop.ini` 跟 Drop.dll 同目录
 3. 改配置后等 1 秒自动生效（热重载）只对新的掉落物生效
+
+建议开白名单不屏蔽提示框；默认会显示圣遗物的光柱
 
 ## 配置文件 Drop.ini
 
@@ -29,19 +31,6 @@
 | `FilterMode` | `blacklist` = 只屏蔽列表中的；`whitelist` = 只放行列表中的 |
 | `Blacklist` | 要屏蔽的 GameObject 名字，逗号分隔。含 "Relic" 的自动放行 |
 
-## 项目结构
-
-```
-Drop/
-├── Patterns.h        ← 偏移地址（游戏更新时改这里）
-├── Config/
-│   ├── Config.h/cpp  ← INI 读取 + 热重载
-│   └── Drop.ini      ← 用户配置
-├── Hooks.h/cpp       ← Hook 逻辑
-├── dllmain.cpp       ← 入口
-├── MinHook/          ← MinHook 源码
-└── Memory.h/cpp      ← 工具函数
-```
 
 ## 构建
 
