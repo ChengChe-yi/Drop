@@ -45,7 +45,7 @@ Drop/
 
 ## 构建
 
-Visual Studio 2022，打开 `Drop.slnx`，选 Release/x64 编译。
+Visual Studio 打开 `Drop.slnx`，选 Release/x64 编译。
 
 ## 注意
 
