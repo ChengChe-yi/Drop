@@ -181,13 +181,14 @@ namespace Config
         std::string mode = GetIniValue(ini, "FilterMode", "Value");
         cfg.isBlacklist = (mode != "whitelist");
 
-        // [Blacklist] — 名字列表
-        cfg.filterNames = GetIniStringList(ini, "Blacklist");
-
-        // 如果 [Blacklist] 没读到, 尝试 [Whitelist]
-        if (cfg.filterNames.empty())
+        // 如果是白名单模式, 从 [Whitelist] 读; 否则从 [Blacklist]
+        if (!cfg.isBlacklist)
         {
             cfg.filterNames = GetIniStringList(ini, "Whitelist");
+        }
+        else
+        {
+            cfg.filterNames = GetIniStringList(ini, "Blacklist");
         }
 
         // [HotReload] 间隔
