@@ -4,23 +4,17 @@
 #include <sstream>
 #include <algorithm>
 
-
-static DropConfig      g_config = {
-    true,           // pillarFilterEnabled
-    false,          // suppressPickupBar
-    true,           // isBlacklist
-
-    { L"SceneObj_DropItem_Monster(Clone)",
-      L"SceneObj_DropItem_Exp_Avatar(Clone)" },
-    1000            // hotReloadMs
+static DropConfig g_config = {
+    true, false, true,
+    {},
+    1000
 };
+
 static CRITICAL_SECTION g_cs;
 static bool            g_csInit = false;
 static HANDLE          g_hReloadThread = nullptr;
 static volatile bool   g_reloadRunning = false;
 static uint64_t        g_lastFileTime = 0;
-
-
 
 static std::string Trim(const std::string& s)
 {
@@ -29,7 +23,6 @@ static std::string Trim(const std::string& s)
     size_t end = s.find_last_not_of(" \t\r\n");
     return s.substr(start, end - start + 1);
 }
-
 
 static bool ReadFile(const std::string& path, std::string& out)
 {
@@ -41,7 +34,6 @@ static bool ReadFile(const std::string& path, std::string& out)
     return true;
 }
 
-
 static uint64_t GetFileTimeUs(const std::string& path)
 {
     WIN32_FILE_ATTRIBUTE_DATA info = {};
@@ -51,22 +43,18 @@ static uint64_t GetFileTimeUs(const std::string& path)
            ((uint64_t)info.ftLastWriteTime.dwHighDateTime << 32);
 }
 
-
 static std::string GetIniValue(const std::string& ini, const std::string& section, const std::string& key)
 {
-
     std::string secTag = "[" + section + "]";
     size_t secPos = ini.find(secTag);
     if (secPos == std::string::npos) return "";
-
 
     size_t endPos = ini.find("\n[", secPos + 1);
     if (endPos == std::string::npos) endPos = ini.size();
 
     std::string secContent = ini.substr(secPos, endPos - secPos);
+    std::string searchKey = key;
 
-    std::string searchKey = "Value";
-    size_t eqPos = std::string::npos;
     size_t cur = 0;
     while (true)
     {
@@ -81,17 +69,12 @@ static std::string GetIniValue(const std::string& ini, const std::string& sectio
         {
             std::string k = Trim(line.substr(0, colon));
             if (k == searchKey)
-            {
                 return Trim(line.substr(colon + 1));
-            }
         }
-
         cur = lineEnd + 1;
     }
-
     return "";
 }
-
 
 static bool GetIniBool(const std::string& ini, const std::string& section, bool def)
 {
@@ -100,14 +83,12 @@ static bool GetIniBool(const std::string& ini, const std::string& section, bool 
     return (v == "1" || v == "true" || v == "True");
 }
 
-
 static int GetIniInt(const std::string& ini, const std::string& section, int def)
 {
     std::string v = GetIniValue(ini, section, "Value");
     if (v.empty()) return def;
     return std::stoi(v);
 }
-
 
 static std::vector<std::wstring> GetIniStringList(const std::string& ini, const std::string& section)
 {
@@ -122,7 +103,6 @@ static std::vector<std::wstring> GetIniStringList(const std::string& ini, const 
         std::string item = Trim(val.substr(start, end - start));
         if (!item.empty())
         {
-            // UTF-8 → wchar_t
             int wlen = MultiByteToWideChar(CP_UTF8, 0, item.c_str(), -1, nullptr, 0);
             if (wlen > 0)
             {
@@ -134,7 +114,6 @@ static std::vector<std::wstring> GetIniStringList(const std::string& ini, const 
         if (end == std::string::npos) break;
         start = end + 1;
     }
-
     return result;
 }
 
@@ -144,7 +123,6 @@ namespace Config
     {
         char path[MAX_PATH];
         HMODULE hm = nullptr;
- 
         GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
                            GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
                            (LPCSTR)&g_config, &hm);
@@ -170,37 +148,23 @@ namespace Config
         }
 
         DropConfig cfg;
-
-        // [PillarFilter] — 屏蔽总开关
         cfg.pillarFilterEnabled = GetIniBool(ini, "PillarFilter", true);
-
-        // [SuppressPickupBar] — 屏蔽拾取栏
         cfg.suppressPickupBar = GetIniBool(ini, "SuppressPickupBar", false);
 
-        // [FilterMode] — 黑名单/白名单
         std::string mode = GetIniValue(ini, "FilterMode", "Value");
         cfg.isBlacklist = (mode != "whitelist");
 
-        // 如果是白名单模式, 从 [Whitelist] 读; 否则从 [Blacklist]
         if (!cfg.isBlacklist)
-        {
             cfg.filterNames = GetIniStringList(ini, "Whitelist");
-        }
         else
-        {
             cfg.filterNames = GetIniStringList(ini, "Blacklist");
-        }
 
-        // [HotReload] 间隔
         int ms = GetIniInt(ini, "HotReload", 1000);
         if (ms >= 100) cfg.hotReloadMs = ms;
-
 
         if (g_csInit) EnterCriticalSection(&g_cs);
         g_config = cfg;
         if (g_csInit) LeaveCriticalSection(&g_cs);
-
-        OutputDebugStringA("[Drop] Config reloaded\n");
     }
 
     DropConfig Get()
@@ -221,7 +185,6 @@ namespace Config
         while (g_reloadRunning)
         {
             Sleep(g_config.hotReloadMs);
-
             uint64_t ft = GetFileTimeUs(path);
             if (ft != 0 && ft != g_lastFileTime)
             {
@@ -230,20 +193,17 @@ namespace Config
                 OutputDebugStringA("[Drop] Config hot-reloaded\n");
             }
         }
-
         return 0;
     }
 
     void StartHotReload()
     {
         if (g_hReloadThread) return;
-
         if (!g_csInit)
         {
             InitializeCriticalSection(&g_cs);
             g_csInit = true;
         }
-
         Reload();
         g_hReloadThread = CreateThread(nullptr, 0, ReloadThread, nullptr, 0, nullptr);
     }
@@ -257,7 +217,6 @@ namespace Config
             CloseHandle(g_hReloadThread);
             g_hReloadThread = nullptr;
         }
-
         if (g_csInit)
         {
             DeleteCriticalSection(&g_cs);
