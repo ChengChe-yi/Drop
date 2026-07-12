@@ -1,19 +1,9 @@
 ﻿#pragma once
-#include <string>
-#include <vector>
-
-struct DropConfig
-{
-    bool pillarFilterEnabled = true;
-    bool suppressPickupBar = false;
-    bool isBlacklist = true;
-    std::vector<std::wstring> filterNames;
-    int hotReloadMs = 1000;
-};
 
 namespace Config
 {
-    DropConfig Get();
+    extern bool g_pillarFilterEnabled;  // 总开关
+
     void Reload();
     std::string GetConfigPath();
     void StartHotReload();

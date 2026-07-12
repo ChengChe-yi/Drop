@@ -2,225 +2,108 @@
 #include "Config.h"
 #include <fstream>
 #include <sstream>
-#include <algorithm>
-
-static DropConfig g_config = {
-    true, false, true,
-    {},
-    1000
-};
-
-static CRITICAL_SECTION g_cs;
-static bool            g_csInit = false;
-static HANDLE          g_hReloadThread = nullptr;
-static volatile bool   g_reloadRunning = false;
-static uint64_t        g_lastFileTime = 0;
-
-static std::string Trim(const std::string& s)
-{
-    size_t start = s.find_first_not_of(" \t\r\n");
-    if (start == std::string::npos) return "";
-    size_t end = s.find_last_not_of(" \t\r\n");
-    return s.substr(start, end - start + 1);
-}
-
-static bool ReadFile(const std::string& path, std::string& out)
-{
-    std::ifstream f(path);
-    if (!f) return false;
-    std::stringstream ss;
-    ss << f.rdbuf();
-    out = ss.str();
-    return true;
-}
-
-static uint64_t GetFileTimeUs(const std::string& path)
-{
-    WIN32_FILE_ATTRIBUTE_DATA info = {};
-    if (!GetFileAttributesExA(path.c_str(), GetFileExInfoStandard, &info))
-        return 0;
-    return (uint64_t)info.ftLastWriteTime.dwLowDateTime |
-           ((uint64_t)info.ftLastWriteTime.dwHighDateTime << 32);
-}
-
-static std::string GetIniValue(const std::string& ini, const std::string& section, const std::string& key)
-{
-    std::string secTag = "[" + section + "]";
-    size_t secPos = ini.find(secTag);
-    if (secPos == std::string::npos) return "";
-
-    size_t endPos = ini.find("\n[", secPos + 1);
-    if (endPos == std::string::npos) endPos = ini.size();
-
-    std::string secContent = ini.substr(secPos, endPos - secPos);
-    std::string searchKey = key;
-
-    size_t cur = 0;
-    while (true)
-    {
-        size_t lineStart = secContent.find_first_not_of("\r\n", cur);
-        if (lineStart == std::string::npos) break;
-        size_t lineEnd = secContent.find_first_of("\r\n", lineStart);
-        if (lineEnd == std::string::npos) lineEnd = secContent.size();
-
-        std::string line = secContent.substr(lineStart, lineEnd - lineStart);
-        size_t colon = line.find('=');
-        if (colon != std::string::npos)
-        {
-            std::string k = Trim(line.substr(0, colon));
-            if (k == searchKey)
-                return Trim(line.substr(colon + 1));
-        }
-        cur = lineEnd + 1;
-    }
-    return "";
-}
-
-static bool GetIniBool(const std::string& ini, const std::string& section, bool def)
-{
-    std::string v = GetIniValue(ini, section, "Value");
-    if (v.empty()) return def;
-    return (v == "1" || v == "true" || v == "True");
-}
-
-static int GetIniInt(const std::string& ini, const std::string& section, int def)
-{
-    std::string v = GetIniValue(ini, section, "Value");
-    if (v.empty()) return def;
-    return std::stoi(v);
-}
-
-static std::vector<std::wstring> GetIniStringList(const std::string& ini, const std::string& section)
-{
-    std::vector<std::wstring> result;
-    std::string val = GetIniValue(ini, section, "Value");
-    if (val.empty()) return result;
-
-    size_t start = 0;
-    while (true)
-    {
-        size_t end = val.find(',', start);
-        std::string item = Trim(val.substr(start, end - start));
-        if (!item.empty())
-        {
-            int wlen = MultiByteToWideChar(CP_UTF8, 0, item.c_str(), -1, nullptr, 0);
-            if (wlen > 0)
-            {
-                std::vector<wchar_t> wbuf(wlen);
-                MultiByteToWideChar(CP_UTF8, 0, item.c_str(), -1, wbuf.data(), wlen);
-                result.push_back(std::wstring(wbuf.data()));
-            }
-        }
-        if (end == std::string::npos) break;
-        start = end + 1;
-    }
-    return result;
-}
+#include <thread>
+#include <atomic>
+#include <string>
 
 namespace Config
 {
+    bool g_pillarFilterEnabled = false;
+
+    static std::atomic<bool> g_running = false;
+    static std::thread g_thread;
+
     std::string GetConfigPath()
     {
         char path[MAX_PATH];
-        HMODULE hm = nullptr;
-        GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
-                           GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                           (LPCSTR)&g_config, &hm);
-        GetModuleFileNameA(hm, path, MAX_PATH);
+        GetModuleFileNameA(GetModuleHandleW(L"Drop.dll"), path, MAX_PATH);
+        std::string exe(path);
+        auto pos = exe.find_last_of("\\/");
+        if (pos != std::string::npos)
+            exe = exe.substr(0, pos + 1);
+        return exe + "Drop.ini";
+    }
 
-        std::string full(path);
-        size_t slash = full.find_last_of("\\/");
-        if (slash != std::string::npos)
-            full = full.substr(0, slash);
+  
+    static int ReadIniValue(const std::string& content, const std::string& section)
+    {
+        std::string search = "[" + section + "]";
+        auto s = content.find(search);
+        if (s == std::string::npos) return -1;
 
-        return full + "\\Drop.ini";
+        s = content.find("Value", s + search.size());
+        if (s == std::string::npos) return -1;
+
+        auto eq = content.find('=', s);
+        if (eq == std::string::npos) return -1;
+
+        eq++; 
+        while (eq < content.size() && content[eq] == ' ') eq++;
+
+        if (eq < content.size() && content[eq] == '1') return 1;
+        if (eq < content.size() && content[eq] == '0') return 0;
+        return -1;
     }
 
     void Reload()
     {
+        g_pillarFilterEnabled = false;  
         std::string path = GetConfigPath();
-        std::string ini;
-
-        if (!ReadFile(path, ini))
-        {
-            OutputDebugStringA("[Drop] Drop.ini not found, using defaults\n");
+        std::ifstream f(path);
+        if (!f.is_open()) {
+            OutputDebugStringA(("[Drop] Config not found: " + path + "\n").c_str());
             return;
         }
+        std::string content((std::istreambuf_iterator<char>(f)),
+                             std::istreambuf_iterator<char>());
 
-        DropConfig cfg;
-        cfg.pillarFilterEnabled = GetIniBool(ini, "PillarFilter", true);
-        cfg.suppressPickupBar = GetIniBool(ini, "SuppressPickupBar", false);
+      
+        char dbg[256];
+        sprintf_s(dbg, "[Drop] Config content (100): %.100s", content.c_str());
+        OutputDebugStringA(dbg);
 
-        std::string mode = GetIniValue(ini, "FilterMode", "Value");
-        cfg.isBlacklist = (mode != "whitelist");
+        int v = ReadIniValue(content, "PillarFilter");
+        if (v >= 0) g_pillarFilterEnabled = (v != 0);
 
-        if (!cfg.isBlacklist)
-            cfg.filterNames = GetIniStringList(ini, "Whitelist");
-        else
-            cfg.filterNames = GetIniStringList(ini, "Blacklist");
-
-        int ms = GetIniInt(ini, "HotReload", 1000);
-        if (ms >= 100) cfg.hotReloadMs = ms;
-
-        if (g_csInit) EnterCriticalSection(&g_cs);
-        g_config = cfg;
-        if (g_csInit) LeaveCriticalSection(&g_cs);
+        sprintf_s(dbg, "[Drop] Config: pillarFilter=%d path=%s",
+                  g_pillarFilterEnabled, path.c_str());
+        OutputDebugStringA(dbg);
     }
 
-    DropConfig Get()
-    {
-        if (!g_csInit) return g_config;
-        EnterCriticalSection(&g_cs);
-        DropConfig c = g_config;
-        LeaveCriticalSection(&g_cs);
-        return c;
-    }
-
-    static DWORD WINAPI ReloadThread(LPVOID)
+    static void WatchThread()
     {
         std::string path = GetConfigPath();
-        g_lastFileTime = GetFileTimeUs(path);
-        g_reloadRunning = true;
+        ULONGLONG lastWrite = 0;
 
-        while (g_reloadRunning)
-        {
-            Sleep(g_config.hotReloadMs);
-            uint64_t ft = GetFileTimeUs(path);
-            if (ft != 0 && ft != g_lastFileTime)
-            {
-                g_lastFileTime = ft;
-                Reload();
-                OutputDebugStringA("[Drop] Config hot-reloaded\n");
+        while (g_running) {
+            HANDLE h = CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ,
+                                   NULL, OPEN_EXISTING, 0, NULL);
+            if (h != INVALID_HANDLE_VALUE) {
+                FILETIME ft;
+                if (GetFileTime(h, NULL, NULL, &ft)) {
+                    ULONGLONG wt = ((ULONGLONG)ft.dwHighDateTime << 32) | ft.dwLowDateTime;
+                    if (wt != lastWrite) {
+                        lastWrite = wt;
+                        Reload();
+                    }
+                }
+                CloseHandle(h);
             }
+            Sleep(1000);
         }
-        return 0;
     }
 
     void StartHotReload()
     {
-        if (g_hReloadThread) return;
-        if (!g_csInit)
-        {
-            InitializeCriticalSection(&g_cs);
-            g_csInit = true;
-        }
         Reload();
-        g_hReloadThread = CreateThread(nullptr, 0, ReloadThread, nullptr, 0, nullptr);
+        if (g_running) return;
+        g_running = true;
+        g_thread = std::thread(WatchThread);
+        g_thread.detach();
     }
 
     void StopHotReload()
     {
-        g_reloadRunning = false;
-        if (g_hReloadThread)
-        {
-            WaitForSingleObject(g_hReloadThread, 5000);
-            CloseHandle(g_hReloadThread);
-            g_hReloadThread = nullptr;
-        }
-        if (g_csInit)
-        {
-            DeleteCriticalSection(&g_cs);
-            g_csInit = false;
-        }
+        g_running = false;
     }
 }
