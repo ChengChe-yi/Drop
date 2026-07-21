@@ -1,20 +1,35 @@
 ﻿#include "pch.h"
 #include "Hooks.h"
 #include "Config.h"
+#include "Logger.h"
+#include "Stealth.h"
+#include <atomic>
 
-DWORD WINAPI InitThread(LPVOID)
+namespace Config { HMODULE g_hModule = nullptr; }
+
+// Delayed init — runs from first B81160 handler call (game thread, no extra thread)
+static std::atomic<bool> g_initDone{false};
+
+void RunDelayedInit()
 {
-    Sleep(2000);
-    OutputDebugStringA("[Drop] Installing hooks...\n");
+    if (g_initDone.load(std::memory_order_acquire)) return;
+    g_initDone.store(true, std::memory_order_release);
+
+    Stealth::Init();
+    Stealth::HideFromPEB();
+
+    HMODULE hMod = Config::g_hModule;
+    InitLogFile(hMod);
+    LOG_MSG("Drop", "Drop Plugin Loaded");
 
     Config::StartHotReload();
 
-    if (Hooks::Init())
-        OutputDebugStringA("[Drop] Hooks installed!\n");
-    else
-        OutputDebugStringA("[Drop] Hooks FAILED!\n");
+    LOG_MSG("Drop", "Hooks already installed in DllMain");
+}
 
-    return 0;
+extern "C" __declspec(dllexport) LRESULT CALLBACK HookProc(int code, WPARAM wParam, LPARAM lParam)
+{
+    return CallNextHookEx(nullptr, code, wParam, lParam);
 }
 
 BOOL APIENTRY DllMain(HMODULE hModule,
@@ -24,11 +39,13 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     switch (ul_reason_for_call)
     {
     case DLL_PROCESS_ATTACH:
+        Config::g_hModule = hModule;
         DisableThreadLibraryCalls(hModule);
-        {
-            HANDLE hThread = CreateThread(nullptr, 0, InitThread, nullptr, 0, nullptr);
-            if (hThread) CloseHandle(hThread);
-        }
+
+        // Install hooks directly in DllMain (safe: VirtualAlloc/VirtualProtect only)
+        // No thread creation, no file I/O, no config thread
+        if (Hooks::Init())
+            /* hooks installed */;
         break;
 
     case DLL_PROCESS_DETACH:
@@ -36,6 +53,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
         {
             Config::StopHotReload();
             Hooks::Uninit();
+            CloseLog();
         }
         break;
     }

@@ -42,12 +42,10 @@ namespace Memory
             if (c == ' ' || c == '\t')
                 continue;
 
-            if (c == '?' || c == '?')
+            if (c == '?')
             {
-            
                 result.emplace_back(0x00, false);
-             
-                if (i + 1 < pattern.size() && (pattern[i + 1] == '?' || pattern[i + 1] == '?'))
+                if (i + 1 < pattern.size() && pattern[i + 1] == '?')
                     ++i;
                 continue;
             }
@@ -64,41 +62,51 @@ namespace Memory
         return result;
     }
 
-    ScanResult ScanPattern(uintptr_t start, size_t size, const std::string& pattern)
+    // Raw memory scanner — SEH-safe (no C++ objects, POD types only)
+    static ScanResult ScanPatternRaw(uintptr_t start, size_t size,
+                                     const uint8_t* patBytes, const uint8_t* patMask, size_t patternLen)
     {
         ScanResult result;
+        __try {
+            const uint8_t* data = reinterpret_cast<const uint8_t*>(start);
+            for (size_t i = 0; i <= size - patternLen; ++i)
+            {
+                bool match = true;
+                for (size_t j = 0; j < patternLen; ++j)
+                {
+                    if (patMask[j] && data[i + j] != patBytes[j])
+                    { match = false; break; }
+                }
+                if (match)
+                {
+                    result.address = start + i;
+                    result.found   = true;
+                    return result;
+                }
+            }
+        } __except (EXCEPTION_EXECUTE_HANDLER) {}
+        return result;
+    }
 
+    ScanResult ScanPattern(uintptr_t start, size_t size, const std::string& pattern)
+    {
         if (start == 0 || size == 0 || pattern.empty())
-            return result;
+            return {};
 
         auto parsed = ParsePattern(pattern);
         if (parsed.empty())
-            return result;
+            return {};
 
-        auto* data = reinterpret_cast<const uint8_t*>(start);
-        size_t patternLen = parsed.size();
-
-        for (size_t i = 0; i <= size - patternLen; ++i)
+        // Convert to raw arrays (POD) for SEH-safe scanning
+        std::vector<uint8_t> patBytes(parsed.size());
+        std::vector<uint8_t> patMask(parsed.size());
+        for (size_t i = 0; i < parsed.size(); i++)
         {
-            bool match = true;
-            for (size_t j = 0; j < patternLen; ++j)
-            {
-                if (parsed[j].second && data[i + j] != parsed[j].first)
-                {
-                    match = false;
-                    break;
-                }
-            }
-
-            if (match)
-            {
-                result.address = start + i;
-                result.found   = true;
-                return result;
-            }
+            patBytes[i] = parsed[i].first;
+            patMask[i] = parsed[i].second ? 1 : 0;
         }
 
-        return result;
+        return ScanPatternRaw(start, size, patBytes.data(), patMask.data(), parsed.size());
     }
 
     ScanResult ScanMainModule(const std::string& pattern)

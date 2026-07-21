@@ -16,17 +16,11 @@
     <Filter Include="PillarSuppress">
       <UniqueIdentifier>{8E2F3A4B-5C6D-4E7F-8A9B-0C1D2E3F4A5B}</UniqueIdentifier>
     </Filter>
+    <Filter Include="PickupSuppress">
+      <UniqueIdentifier>{9F3A4B5C-6D7E-4F8A-9B0C-1D2E3F4A5B6C}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Scanner">
       <UniqueIdentifier>{1A2B3C4D-5E6F-4A7B-8C9D-0E1F2A3B4C5D}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="MinHook">
-      <UniqueIdentifier>{6F8E9D0C-1B2A-3C4D-5E6F-7A8B9C0D1E2F}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="MinHook\src">
-      <UniqueIdentifier>{7A9B0C1D-2E3F-4A5B-6C7D-8E9F0A1B2C3D}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="MinHook\src\hde">
-      <UniqueIdentifier>{8E9F0A1B-2C3D-4E5F-6A7B-8C9D0E1F2A3B}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -37,6 +31,12 @@
       <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="Core\Memory.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Logger.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Stealth.h">
       <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="Config\Config.h">
@@ -51,15 +51,18 @@
     <ClInclude Include="PillarSuppress\PillarSuppress.h">
       <Filter>PillarSuppress</Filter>
     </ClInclude>
+    <ClInclude Include="PickupSuppress\PickupSuppress.h">
+      <Filter>PickupSuppress</Filter>
+    </ClInclude>
     <ClInclude Include="Scanner\Scanner.h">
       <Filter>Scanner</Filter>
-    </ClInclude>
-    <ClInclude Include="MinHook\MinHook.h">
-      <Filter>MinHook</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\dllmain.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Stealth.cpp">
       <Filter>Core</Filter>
     </ClCompile>
     <ClCompile Include="Core\pch.cpp">
@@ -77,28 +80,19 @@
     <ClCompile Include="PillarSuppress\PillarSuppress.cpp">
       <Filter>PillarSuppress</Filter>
     </ClCompile>
+    <ClCompile Include="PickupSuppress\PickupSuppress.cpp">
+      <Filter>PickupSuppress</Filter>
+    </ClCompile>
     <ClCompile Include="Scanner\Scanner.cpp">
       <Filter>Scanner</Filter>
-    </ClCompile>
-    <ClCompile Include="MinHook\src\buffer.c">
-      <Filter>MinHook\src</Filter>
-    </ClCompile>
-    <ClCompile Include="MinHook\src\hook.c">
-      <Filter>MinHook\src</Filter>
-    </ClCompile>
-    <ClCompile Include="MinHook\src\trampoline.c">
-      <Filter>MinHook\src</Filter>
-    </ClCompile>
-    <ClCompile Include="MinHook\src\hde\hde64.c">
-      <Filter>MinHook\src\hde</Filter>
     </ClCompile>
     <ClCompile Include="Patterns\Patterns.cpp">
       <Filter>Patterns</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Config\Drop.ini">
+    <None Include="Config\Config.ini">
       <Filter>Config</Filter>
-    </Content>
+    </None>
   </ItemGroup>
 </Project>

@@ -1,35 +1,34 @@
 #include "pch.h"
 #include "Hooks.h"
 #include "PillarSuppress.h"
-#include <MinHook.h>
-
-#define LOG(fmt, ...) do {                          \
-    char _b_[512];                                  \
-    sprintf_s(_b_, "[Drop] " fmt "\n", __VA_ARGS__);\
-    OutputDebugStringA(_b_);                        \
-} while(0)
+#include "PickupSuppress.h"
+#include "Logger.h"
 
 namespace Hooks
 {
     bool Init()
     {
-        if (MH_Initialize() != MH_OK) { /* may already be initialized */ }
+        LOG_MSG("Hooks", "Initializing manual hooks...");
 
-        if (!PillarSuppress::Init())
+        bool pillar = PillarSuppress::Init();
+        bool pickup = PickupSuppress::Init();
+
+        LOG("Hooks", "PillarSuppress=%d PickupSuppress=%d", (int)pillar, (int)pickup);
+
+        if (!pillar && !pickup)
         {
-            LOG("PillarSuppress::Init FAILED");
+            LOG_MSG("Hooks", "All hooks FAILED!");
             return false;
         }
 
-        LOG("All hooks installed");
+        LOG_MSG("Hooks", "Hooks installed");
         return true;
     }
 
     void Uninit()
     {
         PillarSuppress::Uninit();
-        MH_DisableHook(MH_ALL_HOOKS);
-        MH_Uninitialize();
-        LOG("All hooks uninstalled");
+        PickupSuppress::Uninit();
+        LOG_MSG("Hooks", "All hooks uninstalled");
     }
 }

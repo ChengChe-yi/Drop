@@ -1,10 +1,7 @@
-﻿
-
-#ifndef PCH_H
+﻿#ifndef PCH_H
 #define PCH_H
 
 #include "framework.h"
-
 
 #include <cstdint>
 #include <cstdio>
@@ -16,7 +13,4 @@
 
 #include <psapi.h>
 
-
-#include <MinHook.h>
-
-#endif 
+#endif //PCH_H

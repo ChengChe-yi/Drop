@@ -33,10 +33,10 @@ namespace Scanner
         {
             char c = pattern[i];
             if (c == ' ' || c == '\t') continue;
-            if (c == '?' || c == '?')
+            if (c == '?')
             {
                 result.emplace_back(0x00, false);
-                if (i + 1 < pattern.size() && (pattern[i+1] == '?' || pattern[i+1] == '?'))
+                if (i + 1 < pattern.size() && pattern[i+1] == '?')
                     ++i;
                 continue;
             }
