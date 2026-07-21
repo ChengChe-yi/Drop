@@ -28,7 +28,13 @@ MinHook/libMinHook.x64.lib
 MinHook/libMinHook.x86.lib
 
 # Config (user-specific)
-Config/Drop.ini
+Config/Config.ini
+
+# UPX packer
+upx-5.2.0/
+
+# Plugin installer script (generated, not part of source)
+install.lua
 
 # IDE
 *.opendb
