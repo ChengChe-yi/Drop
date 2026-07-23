@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Scanner.h"
+#include "XorStr.h"
 #include <vector>
 #include <psapi.h>
 
@@ -9,7 +10,7 @@ namespace Scanner
     {
         static uintptr_t base = 0;
         if (base == 0)
-            base = (uintptr_t)GetModuleHandleW(L"YuanShen.exe");
+            base = (uintptr_t)GetModuleHandleW(XWSTR(L"YuanShen.exe"));
         return base;
     }
 
@@ -19,7 +20,7 @@ namespace Scanner
         if (size == 0)
         {
             MODULEINFO info = {};
-            if (GetModuleInformation(GetCurrentProcess(), GetModuleHandleW(L"YuanShen.exe"), &info, sizeof(info)))
+            if (GetModuleInformation(GetCurrentProcess(), GetModuleHandleW(XWSTR(L"YuanShen.exe")), &info, sizeof(info)))
                 size = info.SizeOfImage;
         }
         return size;

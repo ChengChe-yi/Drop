@@ -11,6 +11,7 @@
 
 // Global toggle — set by Config::Reload() from Config.ini [Log]
 #include <atomic>
+#include "XorStr.h"
 inline std::atomic<bool> g_logWriteEnabled{true};
 
 inline wchar_t g_logPath[MAX_PATH] = {};
@@ -61,27 +62,30 @@ static inline void CloseLog() {
     // Nothing to close — handles are opened/closed per write
 }
 
-// LOG macro (file only, no OutputDebugString)
+// LOG macro (file only, no OutputDebugString) — strings auto-encrypted via XSTR
 #define LOG(tag, fmt, ...)                                                          \
     do {                                                                            \
         SYSTEMTIME _st;                                                             \
         GetLocalTime(&_st);                                                         \
+        char _fmt[1024];                                                            \
+        sprintf_s(_fmt, sizeof(_fmt), "[%%02d:%%02d:%%02d.%%03d][%s] %s\n",         \
+            XSTR(tag), XSTR(fmt));                                                   \
         char _buf[1024];                                                            \
-        int _len = sprintf_s(_buf, "[%02d:%02d:%02d.%03d][" tag "] " fmt "\n",      \
+        int _len = sprintf_s(_buf, sizeof(_buf), _fmt,                              \
             _st.wHour, _st.wMinute, _st.wSecond, _st.wMilliseconds,                 \
             __VA_ARGS__);                                                           \
-        WriteLog(_buf);                                                             \
-        (void)_len;                                                                 \
+        if (_len > 0) WriteLog(_buf);                                               \
     } while (0)
 
 #define LOG_MSG(tag, msg)                                                           \
     do {                                                                            \
         SYSTEMTIME _st;                                                             \
         GetLocalTime(&_st);                                                         \
+        char _fmt[1024];                                                            \
+        sprintf_s(_fmt, sizeof(_fmt), "[%%02d:%%02d:%%02d.%%03d][%s] %s\n",         \
+            XSTR(tag), XSTR(msg));                                                   \
         char _buf[1024];                                                            \
-        int _len = sprintf_s(_buf, "[%02d:%02d:%02d.%03d][" tag "] %s\n",           \
-            _st.wHour, _st.wMinute, _st.wSecond, _st.wMilliseconds,                 \
-            msg);                                                                   \
-        WriteLog(_buf);                                                             \
-        (void)_len;                                                                 \
+        int _len = sprintf_s(_buf, sizeof(_buf), _fmt,                              \
+            _st.wHour, _st.wMinute, _st.wSecond, _st.wMilliseconds);                \
+        if (_len > 0) WriteLog(_buf);                                               \
     } while (0)

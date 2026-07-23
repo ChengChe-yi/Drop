@@ -106,7 +106,7 @@ static __int64 __fastcall B81160_Thunk(__int64 a1, unsigned int a2, __int64 a3, 
 // ============================================================================
 static bool DoInit()
 {
-    g_base = (uint8_t*)GetModuleHandleW(L"YuanShen.exe");
+    g_base = (uint8_t*)GetModuleHandleW(XWSTR(L"YuanShen.exe"));
     if (!g_base)
         g_base = (uint8_t*)GetModuleHandleW(nullptr);
     if (!g_base) return false;

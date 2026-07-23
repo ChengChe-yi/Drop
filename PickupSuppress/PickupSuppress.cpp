@@ -38,7 +38,7 @@ struct Il2CppString {
 static void EnsureBase()
 {
     if (g_base) return;
-    g_base = (uint8_t*)GetModuleHandleW(L"YuanShen.exe");
+    g_base = (uint8_t*)GetModuleHandleW(XWSTR(L"YuanShen.exe"));
     if (!g_base)
         g_base = (uint8_t*)GetModuleHandleW(nullptr);
 }
