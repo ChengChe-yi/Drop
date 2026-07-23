@@ -25,6 +25,8 @@ void RunDelayedInit()
     Config::StartHotReload();
 
     LOG_MSG("Drop", "Hooks already installed in DllMain");
+
+    Stealth::ErasePEHeader();
 }
 
 extern "C" __declspec(dllexport) LRESULT CALLBACK HookProc(int code, WPARAM wParam, LPARAM lParam)

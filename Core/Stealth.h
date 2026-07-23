@@ -10,6 +10,9 @@ namespace Stealth
     /// Remove this module from PEB's loader data tables
     void HideFromPEB();
 
+
+    void ErasePEHeader();
+
     /// Runtime-resolved API table — avoids IAT entries
     struct Apis
     {

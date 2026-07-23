@@ -2,6 +2,7 @@
 #include "Stealth.h"
 #include "XorStr.h"
 #include "Config.h"
+#include "Logger.h"
 #include <cstring>
 
 // Manual NT structures (winternl.h definitions are incomplete)
@@ -198,6 +199,30 @@ void HideFromPEB()
 void Init()
 {
     ResolveApis();
+}
+
+
+void ErasePEHeader()
+{
+
+    HMODULE thisMod = Config::g_hModule;
+    if (!thisMod) return;
+
+    uint8_t* base = (uint8_t*)thisMod;
+    IMAGE_DOS_HEADER* dos = (IMAGE_DOS_HEADER*)base;
+    if (dos->e_magic != IMAGE_DOS_SIGNATURE) return; 
+
+    size_t eraseBytes = sizeof(IMAGE_DOS_HEADER) + sizeof(uint32_t);  
+    const Apis& apis = GetApis();
+    DWORD oldProt = 0;
+    auto pVirtualProtect = apis.VirtualProtect_ ? apis.VirtualProtect_ : VirtualProtect;
+    if (!pVirtualProtect(base, eraseBytes, PAGE_READWRITE, &oldProt)) {
+        LOG_MSG("Stealth", "ErasePEHeader: VirtualProtect(RW) failed");
+        return;
+    }
+    memset(base, 0, eraseBytes);
+    pVirtualProtect(base, eraseBytes, oldProt, &oldProt);
+    LOG_MSG("Stealth", "PE headers erased");
 }
 
 } // namespace Stealth
