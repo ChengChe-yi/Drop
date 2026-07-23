@@ -15,11 +15,8 @@ void RunDelayedInit()
     if (g_initDone.load(std::memory_order_acquire)) return;
     g_initDone.store(true, std::memory_order_release);
 
-    Stealth::Init();
     Stealth::HideFromPEB();
 
-    HMODULE hMod = Config::g_hModule;
-    InitLogFile(hMod);
     LOG_MSG("Drop", "Drop Plugin Loaded");
 
     Config::StartHotReload();
@@ -38,8 +35,10 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     case DLL_PROCESS_ATTACH:
         Config::g_hModule = hModule;
         DisableThreadLibraryCalls(hModule);
+        Stealth::Init();
+        InitLogFile(hModule);
 
-        // Install hooks directly in DllMain (safe: VirtualAlloc/VirtualProtect only)
+        // Install hooks directly in DllMain (safe: VirtualProtect only)
         // No thread creation, no file I/O, no config thread
         if (Hooks::Init())
             /* hooks installed */;
