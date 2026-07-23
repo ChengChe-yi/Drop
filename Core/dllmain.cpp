@@ -29,11 +29,6 @@ void RunDelayedInit()
     Stealth::ErasePEHeader();
 }
 
-extern "C" __declspec(dllexport) LRESULT CALLBACK HookProc(int code, WPARAM wParam, LPARAM lParam)
-{
-    return CallNextHookEx(nullptr, code, wParam, lParam);
-}
-
 BOOL APIENTRY DllMain(HMODULE hModule,
                       DWORD   ul_reason_for_call,
                       LPVOID  lpReserved)
