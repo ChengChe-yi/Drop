@@ -91,6 +91,9 @@ static uint8_t  g_pd_orig[16] = {};
 // C handler: returns 0 = block, 1 = proceed
 // ============================================================================
 static __int64 __fastcall PD_Handler(__int64 a1, __int64 a2) {
+    // Lazy config hot-reload poll (runs on the game thread)
+    Config::Tick();
+
     char iconUtf8[64] = {}, nameUtf8[64] = {};
     __try {
         if (a2 && Config::g_pillarFilterEnabled && Config::g_pickupSuppressEnabled) {

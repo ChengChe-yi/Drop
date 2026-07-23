@@ -111,6 +111,9 @@ static __int64 __fastcall B81160_Handler(__int64 a1, unsigned int a2, __int64 a3
     // Delayed init on first call (no CreateThread needed)
     RunDelayedInit();
 
+    // Lazy config hot-reload poll (runs on the game thread)
+    Config::Tick();
+
     auto gn = GetNameFn();
     if (gn && Config::g_pillarFilterEnabled && Config::g_pillarSuppressEnabled) {
         // a3 = transform/object; a2 = typeId

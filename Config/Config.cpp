@@ -3,7 +3,6 @@
 #include "Logger.h"
 #include <fstream>
 #include <sstream>
-#include <atomic>
 #include <string>
 
 namespace Config
@@ -13,9 +12,8 @@ namespace Config
     bool g_pickupSuppressEnabled = true;
     bool g_pillarFilterEnabled   = true;  
 
-    static std::atomic<bool> g_running = false;
-    static HANDLE g_stopEvent = nullptr;  // Event handle for clean shutdown
-    static HANDLE g_threadHandle = nullptr;
+    static ULONGLONG g_lastCheck = 0;   // GetTickCount64 ms of last poll
+    static ULONGLONG g_lastWrite = 0;   // Last known file mtime (100ns ticks)
 
     std::string GetConfigPath()
     {
@@ -138,79 +136,41 @@ namespace Config
             (int)g_pillarFilterEnabled, (int)g_logEnabled, (int)g_pillarSuppressEnabled, (int)g_pickupSuppressEnabled);
     }
 
-    static DWORD WINAPI WatchThreadProc(LPVOID)
+    // Lazy hot-reload poll. Called from hook handlers on the game thread.
+    // Polls at most once per second; reloads when the file mtime changes.
+    void Tick()
     {
+        ULONGLONG now = GetTickCount64();
+        if (now - g_lastCheck < 1000)
+            return;
+        g_lastCheck = now;
+
         std::string path = GetConfigPath();
-        ULONGLONG lastWrite = 0;
 
-        while (true)
-        {
-            // Wait for stop event with 1 second timeout
-            if (WaitForSingleObject(g_stopEvent, 1000) == WAIT_OBJECT_0)
-                break;  // stop signaled, exit cleanly
-
-            HANDLE h = CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
-                                   NULL, OPEN_EXISTING, 0, NULL);
-            if (h != INVALID_HANDLE_VALUE) {
-                FILETIME ft;
-                if (GetFileTime(h, NULL, NULL, &ft)) {
-                    ULONGLONG wt = ((ULONGLONG)ft.dwHighDateTime << 32) | ft.dwLowDateTime;
-                    if (wt != lastWrite) {
-                        lastWrite = wt;
-                        LOG_MSG("Config", "File change detected, reloading...");
-                        Reload();
-                    }
+        HANDLE h = CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                               NULL, OPEN_EXISTING, 0, NULL);
+        if (h != INVALID_HANDLE_VALUE) {
+            FILETIME ft;
+            if (GetFileTime(h, NULL, NULL, &ft)) {
+                ULONGLONG wt = ((ULONGLONG)ft.dwHighDateTime << 32) | ft.dwLowDateTime;
+                if (wt != g_lastWrite) {
+                    g_lastWrite = wt;
+                    LOG_MSG("Config", "File change detected, reloading...");
+                    Reload();
                 }
-                CloseHandle(h);
             }
+            CloseHandle(h);
         }
-        return 0;
     }
 
     void StartHotReload()
     {
         Reload();
-        if (g_running) return;
-        g_running = true;
-
-        // Create stop event (auto-reset)
-        g_stopEvent = CreateEventW(nullptr, FALSE, FALSE, nullptr);
-        if (!g_stopEvent) {
-            LOG_MSG("Config", "Failed to create stop event");
-            g_running = false;
-            return;
-        }
-
-        g_threadHandle = CreateThread(nullptr, 0, WatchThreadProc, nullptr, 0, nullptr);
-        if (!g_threadHandle) {
-            CloseHandle(g_stopEvent);
-            g_stopEvent = nullptr;
-            g_running = false;
-            LOG_MSG("Config", "Failed to create watch thread");
-        }
-        LOG_MSG("Config", "Hot-reload started");
+        LOG_MSG("Config", "Lazy hot-reload enabled");
     }
 
     void StopHotReload()
     {
-        if (!g_running) return;
-        g_running = false;
-
-        // Signal the watch thread to exit
-        if (g_stopEvent) {
-            SetEvent(g_stopEvent);
-        }
-
-        // Wait for thread to exit (up to 3 seconds)
-        if (g_threadHandle) {
-            WaitForSingleObject(g_threadHandle, 3000);
-            CloseHandle(g_threadHandle);
-            g_threadHandle = nullptr;
-        }
-        if (g_stopEvent) {
-            CloseHandle(g_stopEvent);
-            g_stopEvent = nullptr;
-        }
-        LOG_MSG("Config", "Hot-reload stopped");
+        // No thread/event to clean up — polling runs on the game thread.
     }
 }

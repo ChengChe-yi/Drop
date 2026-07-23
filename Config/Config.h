@@ -19,6 +19,10 @@ namespace Config
 
     void Reload();
     std::string GetConfigPath();
+
+    // Lazy hot-reload poll — call from hook handlers on the game thread.
+    // Polls Config.ini mtime at most once per second; reloads on change.
+    void Tick();
     void StartHotReload();
     void StopHotReload();
 }
