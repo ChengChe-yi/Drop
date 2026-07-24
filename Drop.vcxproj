@@ -175,9 +175,6 @@
     <Manifest>
       <EnableSegmentHeap>true</EnableSegmentHeap>
     </Manifest>
-    <PostBuildEvent>
-      <Command>"$(ProjectDir)upx-5.2.0\upx.exe" --best "$(TargetPath)"</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseMM|x64'">
     <ClCompile>
@@ -252,6 +249,7 @@
   <Target Name="CopyDropIni" AfterTargets="Build" Condition="'$(Configuration)'=='Release' Or '$(Configuration)'=='ReleaseMM'">
     <Copy SourceFiles="$(MSBuildProjectDirectory)\Config\Config.ini" DestinationFiles="$(OutDir)\Config.ini" SkipUnchangedFiles="false" />
     <Copy SourceFiles="$(MSBuildProjectDirectory)\Whitelist\Whitelist.ini" DestinationFiles="$(OutDir)\Whitelist.ini" SkipUnchangedFiles="false" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\README.md" DestinationFolder="$(OutDir)" SkipUnchangedFiles="false" />
   </Target>
   <Target Name="ReleaseZip" AfterTargets="CopyDropIni" Condition="'$(Configuration)'=='Release' Or '$(Configuration)'=='ReleaseMM'">
     <Message Text="Creating Release ZIP..." Importance="high" />
@@ -260,6 +258,7 @@
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(OutDir)zip_staging" />
     <Copy SourceFiles="$(OutDir)\Config.ini" DestinationFolder="$(OutDir)zip_staging" />
     <Copy SourceFiles="$(MSBuildProjectDirectory)\Whitelist\Whitelist.ini" DestinationFolder="$(OutDir)zip_staging" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\README.md" DestinationFolder="$(OutDir)zip_staging" />
     <!-- Step 2: Create ZIP from staging -->
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;Compress-Archive -Path '$(OutDir)zip_staging\*' -DestinationPath '$(OutDir)Drop.zip' -Force&quot;" />
     <!-- Step 3: Cleanup staging -->
