@@ -93,7 +93,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ProjectDir)Config;$(ProjectDir)Patterns;$(ProjectDir)Core;$(ProjectDir)Hooks;$(ProjectDir)PillarSuppress;$(ProjectDir)PickupSuppress;$(ProjectDir)Scanner;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Config;$(ProjectDir)Patterns;$(ProjectDir)Core;$(ProjectDir)Hooks;$(ProjectDir)PillarSuppress;$(ProjectDir)PickupSuppress;$(ProjectDir)Whitelist;$(ProjectDir)Scanner;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -117,7 +117,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ProjectDir)Config;$(ProjectDir)Patterns;$(ProjectDir)Core;$(ProjectDir)Hooks;$(ProjectDir)PillarSuppress;$(ProjectDir)PickupSuppress;$(ProjectDir)Scanner;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Config;$(ProjectDir)Patterns;$(ProjectDir)Core;$(ProjectDir)Hooks;$(ProjectDir)PillarSuppress;$(ProjectDir)PickupSuppress;$(ProjectDir)Whitelist;$(ProjectDir)Scanner;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -139,7 +139,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ProjectDir)Config;$(ProjectDir)Patterns;$(ProjectDir)Core;$(ProjectDir)Hooks;$(ProjectDir)PillarSuppress;$(ProjectDir)PickupSuppress;$(ProjectDir)Scanner;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Config;$(ProjectDir)Patterns;$(ProjectDir)Core;$(ProjectDir)Hooks;$(ProjectDir)PillarSuppress;$(ProjectDir)PickupSuppress;$(ProjectDir)Whitelist;$(ProjectDir)Scanner;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -163,7 +163,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ProjectDir)Config;$(ProjectDir)Patterns;$(ProjectDir)Core;$(ProjectDir)Hooks;$(ProjectDir)PillarSuppress;$(ProjectDir)PickupSuppress;$(ProjectDir)Scanner;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Config;$(ProjectDir)Patterns;$(ProjectDir)Core;$(ProjectDir)Hooks;$(ProjectDir)PillarSuppress;$(ProjectDir)PickupSuppress;$(ProjectDir)Whitelist;$(ProjectDir)Scanner;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -191,7 +191,7 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ProjectDir)Config;$(ProjectDir)Patterns;$(ProjectDir)Core;$(ProjectDir)Hooks;$(ProjectDir)PillarSuppress;$(ProjectDir)PickupSuppress;$(ProjectDir)Scanner;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)Config;$(ProjectDir)Patterns;$(ProjectDir)Core;$(ProjectDir)Hooks;$(ProjectDir)PillarSuppress;$(ProjectDir)PickupSuppress;$(ProjectDir)Whitelist;$(ProjectDir)Scanner;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -210,7 +210,6 @@
   <ItemGroup>
     <ClInclude Include="Core\framework.h" />
     <ClInclude Include="Core\pch.h" />
-    <ClInclude Include="Core\Memory.h" />
     <ClInclude Include="Hooks\Hooks.h" />
     <ClInclude Include="Patterns\Patterns.h" />
     <ClInclude Include="Config\Config.h" />
@@ -223,10 +222,8 @@
   <ItemGroup>
     <ClCompile Include="Core\dllmain.cpp" />
     <ClCompile Include="Core\Stealth.cpp" />
-    <ClCompile Include="Core\Memory.cpp" />
     <ClCompile Include="Hooks\Hooks.cpp" />
     <ClCompile Include="Config\Config.cpp" />
-    <ClCompile Include="Patterns\Patterns.cpp" />
     <ClCompile Include="PillarSuppress\PillarSuppress.cpp" />
     <ClCompile Include="PickupSuppress\PickupSuppress.cpp" />
     <ClCompile Include="Scanner\Scanner.cpp" />
@@ -239,21 +236,30 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Whitelist\Whitelist.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Whitelist\Whitelist.h" />
+  </ItemGroup>
+  <ItemGroup>
     <Content Include="Config\Config.ini" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Config\Config.ini" />
+    <None Include="Whitelist\Whitelist.ini" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Target Name="CopyDropIni" AfterTargets="Build" Condition="'$(Configuration)'=='Release' Or '$(Configuration)'=='ReleaseMM'">
     <Copy SourceFiles="$(MSBuildProjectDirectory)\Config\Config.ini" DestinationFiles="$(OutDir)\Config.ini" SkipUnchangedFiles="false" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\Whitelist\Whitelist.ini" DestinationFiles="$(OutDir)\Whitelist.ini" SkipUnchangedFiles="false" />
   </Target>
   <Target Name="ReleaseZip" AfterTargets="CopyDropIni" Condition="'$(Configuration)'=='Release' Or '$(Configuration)'=='ReleaseMM'">
     <Message Text="Creating Release ZIP..." Importance="high" />
     <!-- Step 1: Copy files to a staging directory -->
     <MakeDir Directories="$(OutDir)zip_staging" />
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(OutDir)zip_staging" />
-    <Copy SourceFiles="$(MSBuildProjectDirectory)\README.md" DestinationFolder="$(OutDir)zip_staging" Condition="Exists('$(MSBuildProjectDirectory)\README.md')" />
+    <Copy SourceFiles="$(OutDir)\Config.ini" DestinationFolder="$(OutDir)zip_staging" />
+    <Copy SourceFiles="$(MSBuildProjectDirectory)\Whitelist\Whitelist.ini" DestinationFolder="$(OutDir)zip_staging" />
     <!-- Step 2: Create ZIP from staging -->
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;Compress-Archive -Path '$(OutDir)zip_staging\*' -DestinationPath '$(OutDir)Drop.zip' -Force&quot;" />
     <!-- Step 3: Cleanup staging -->

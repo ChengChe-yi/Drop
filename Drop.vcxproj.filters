@@ -22,15 +22,15 @@
     <Filter Include="Scanner">
       <UniqueIdentifier>{1A2B3C4D-5E6F-4A7B-8C9D-0E1F2A3B4C5D}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Whitelist">
+      <UniqueIdentifier>{7C8D9E0F-1A2B-3C4D-5E6F-7A8B9C0D1E2F}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\framework.h">
       <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="Core\pch.h">
-      <Filter>Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Memory.h">
       <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="Core\Logger.h">
@@ -57,6 +57,9 @@
     <ClInclude Include="Scanner\Scanner.h">
       <Filter>Scanner</Filter>
     </ClInclude>
+    <ClInclude Include="Whitelist\Whitelist.h">
+      <Filter>Whitelist</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Core\dllmain.cpp">
@@ -66,9 +69,6 @@
       <Filter>Core</Filter>
     </ClCompile>
     <ClCompile Include="Core\pch.cpp">
-      <Filter>Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Memory.cpp">
       <Filter>Core</Filter>
     </ClCompile>
     <ClCompile Include="Config\Config.cpp">
@@ -86,8 +86,8 @@
     <ClCompile Include="Scanner\Scanner.cpp">
       <Filter>Scanner</Filter>
     </ClCompile>
-    <ClCompile Include="Patterns\Patterns.cpp">
-      <Filter>Patterns</Filter>
+    <ClCompile Include="Whitelist\Whitelist.cpp">
+      <Filter>Whitelist</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

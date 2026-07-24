@@ -5,6 +5,7 @@
 #include "Config.h"
 #include "Logger.h"
 #include "XorStr.h"
+#include "Whitelist.h"
 #include <cstring>
 
 // ============================================================================
@@ -58,6 +59,7 @@ static __int64 __fastcall PD_Thunk(__int64 a1, __int64 a2)
 
     // Lazy config hot-reload poll (runs on the game thread)
     Config::Tick();
+    Whitelist::Tick();
 
     char iconUtf8[64] = {}, nameUtf8[64] = {};
     bool shouldBlock = false;
@@ -83,6 +85,12 @@ static __int64 __fastcall PD_Thunk(__int64 a1, __int64 a2)
 
             if (XSTRSTR(iconUtf8, "UI_ItemIcon_112")) {
                 shouldBlock = true;
+            }
+
+            // Whitelist: exact name match → don't block
+            if (shouldBlock && nameUtf8[0] && Whitelist::IsPickupAllowed(nameUtf8)) {
+                LOG("PDhook", "WHITELIST: '%s'", nameUtf8);
+                shouldBlock = false;
             }
         }
     }
