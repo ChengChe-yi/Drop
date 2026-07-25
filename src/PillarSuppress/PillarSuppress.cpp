@@ -1,27 +1,24 @@
 #include "pch.h"
 #include "PillarSuppress.h"
-#include "Hooks.h"
 #include "Config.h"
 #include "Patterns.h"
 #include "Logger.h"
 #include "XorStr.h"
-#include "Int3Hook.h"
-
-extern void RunDelayedInit();
-
 #include <cstring>
 
-static uint8_t* g_base = nullptr;
-static uint8_t* g_b81160_entry = nullptr;
+static uint8_t* g_target = nullptr;
+static uint8_t  g_origBytes[14] = {};
+static uint8_t  g_jmpBytes[14] = {};
+static bool     g_hooked = false;
 
-typedef __int64(__fastcall* tGetName)(__int64 a1, __int64 a2);
-typedef __int64(__fastcall* tB81160)(__int64, unsigned int, __int64, __int64);
+typedef __int64(__fastcall* tOriginal)(__int64, unsigned int, __int64, __int64);
+typedef __int64(__fastcall* tGetName)(__int64, __int64);
 
-static tGetName GetNameFn()
+static tGetName GetNameFn(uint8_t* base)
 {
     static tGetName fn = nullptr;
     if (!fn)
-        fn = (tGetName)(g_base + Offsets::RVA::GetName);
+        fn = (tGetName)(base + Offsets::RVA::GetName);
     return fn;
 }
 
@@ -42,20 +39,38 @@ static bool IsDropItemMonster(__int64 np)
     return (nameLen > 0 && XWCSSTR(buf, L"SceneObj_DropItem_Monster"));
 }
 
+static void BuildJmpBytes(uint8_t* dest, void* jmpTarget)
+{
+    dest[0] = 0xFF; dest[1] = 0x25;
+    dest[2] = 0x00; dest[3] = 0x00; dest[4] = 0x00; dest[5] = 0x00;
+    *(void**)(dest + 6) = jmpTarget;
+}
+
+static __int64 CallOriginal(__int64 a1, unsigned int a2, __int64 a3, __int64 a4)
+{
+    DWORD old = 0;
+    VirtualProtect(g_target, 14, PAGE_EXECUTE_READWRITE, &old);
+    memcpy(g_target, g_origBytes, 14);
+    VirtualProtect(g_target, 14, old, &old);
+
+    auto result = ((tOriginal)g_target)(a1, a2, a3, a4);
+
+    VirtualProtect(g_target, 14, PAGE_EXECUTE_READWRITE, &old);
+    memcpy(g_target, g_jmpBytes, 14);
+    VirtualProtect(g_target, 14, old, &old);
+
+    return result;
+}
+
 static __int64 __fastcall B81160_Thunk(__int64 a1, unsigned int a2, __int64 a3, __int64 a4)
 {
-    RunDelayedInit();
-    Config::Tick();
-
     char nameUtf8[256] = {};
     bool shouldBlock = false;
 
-    auto gn = GetNameFn();
+    auto gn = GetNameFn((uint8_t*)GetModuleHandleW(nullptr));
     if (gn && Config::g_pillarFilterEnabled && Config::g_pillarSuppressEnabled) {
         __int64 np = 0;
-        __try {
-            np = gn(a3, 0);
-        }
+        __try { np = gn(a3, 0); }
         __except (EXCEPTION_EXECUTE_HANDLER) {}
 
         if (np && IsDropItemMonster(np)) {
@@ -70,34 +85,39 @@ static __int64 __fastcall B81160_Thunk(__int64 a1, unsigned int a2, __int64 a3, 
 
     if (shouldBlock) {
         LOG("Pillar", "BLOCK: '%s' type=%u", nameUtf8, a2);
-        Int3Hook::ReArm(g_b81160_entry);
         return 0;
     }
 
-    auto result = ((tB81160)g_b81160_entry)(a1, a2, a3, a4);
-    Int3Hook::ReArm(g_b81160_entry);
-    return result;
+    return CallOriginal(a1, a2, a3, a4);
 }
 
 static bool DoInit()
 {
-    g_base = (uint8_t*)GetModuleHandleW(XWSTR(L"YuanShen.exe"));
-    if (!g_base)
-        g_base = (uint8_t*)GetModuleHandleW(nullptr);
-    if (!g_base) return false;
+    uint8_t* base = (uint8_t*)GetModuleHandleW(nullptr);
+    if (!base) return false;
 
-    g_b81160_entry = g_base + Offsets::RVA::B81160_RVA;
-    LOG("Pillar", "B81160 entry = %llX, first byte = %02X",
-        (uint64_t)g_b81160_entry, *g_b81160_entry);
+    g_target = base + Offsets::RVA::B81160_RVA;
 
-    return Int3Hook::Install(g_b81160_entry, (void*)B81160_Thunk);
+    memcpy(g_origBytes, g_target, 14);
+    BuildJmpBytes(g_jmpBytes, B81160_Thunk);
+
+    LOG("Pillar", "B81160 entry = %llX, first bytes %02X %02X %02X %02X",
+        (uint64_t)g_target, g_origBytes[0], g_origBytes[1], g_origBytes[2], g_origBytes[3]);
+
+    DWORD old = 0;
+    VirtualProtect(g_target, 14, PAGE_EXECUTE_READWRITE, &old);
+    memcpy(g_target, g_jmpBytes, 14);
+    VirtualProtect(g_target, 14, old, &old);
+
+    g_hooked = true;
+    LOG_MSG("Pillar", "FF 25 JMP hook installed OK");
+    return true;
 }
 
 bool PillarSuppress::Init()
 {
     __try { return DoInit(); }
-    __except (EXCEPTION_EXECUTE_HANDLER)
-    {
+    __except (EXCEPTION_EXECUTE_HANDLER) {
         LOG_MSG("Pillar", "Init EXCEPTION!");
         return false;
     }
@@ -105,10 +125,12 @@ bool PillarSuppress::Init()
 
 void PillarSuppress::Uninit()
 {
-    if (g_b81160_entry) {
-        Int3Hook::Uninstall(g_b81160_entry);
-        g_b81160_entry = nullptr;
+    if (g_hooked && g_target) {
+        DWORD old = 0;
+        VirtualProtect(g_target, 14, PAGE_EXECUTE_READWRITE, &old);
+        memcpy(g_target, g_origBytes, 14);
+        VirtualProtect(g_target, 14, old, &old);
+        g_hooked = false;
+        LOG_MSG("Pillar", "Uninit OK (bytes restored)");
     }
-    g_base = nullptr;
-    LOG_MSG("Pillar", "Uninit OK");
 }
