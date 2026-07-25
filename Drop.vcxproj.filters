@@ -13,11 +13,20 @@
     <Filter Include="Patterns">
       <UniqueIdentifier>{3D4E7C8F-5A6B-4C8D-9E1F-2B3C4D5E6F7A}</UniqueIdentifier>
     </Filter>
+    <Filter Include="PickupSuppress">
+      <UniqueIdentifier>{9F3A4B5C-6D7E-4F8A-9B0C-1D2E3F4A5B6C}</UniqueIdentifier>
+    </Filter>
     <Filter Include="PillarSuppress">
       <UniqueIdentifier>{8E2F3A4B-5C6D-4E7F-8A9B-0C1D2E3F4A5B}</UniqueIdentifier>
     </Filter>
-    <Filter Include="PickupSuppress">
-      <UniqueIdentifier>{9F3A4B5C-6D7E-4F8A-9B0C-1D2E3F4A5B6C}</UniqueIdentifier>
+    <Filter Include="SetActiveHook">
+      <UniqueIdentifier>{7A3F9B8C-2D4E-4F6A-8B1C-3D5E7F9A0B2C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Logger">
+      <UniqueIdentifier>{1A2B3C4D-5E6F-4A7B-8C9D-0E1F2A3B4C5D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="XorStr">
+      <UniqueIdentifier>{2B3C4D5E-6F7A-4B8C-9D0E-1F2A3B4C5D6E}</UniqueIdentifier>
     </Filter>
     <Filter Include="Scanner">
       <UniqueIdentifier>{1A2B3C4D-5E6F-4A7B-8C9D-0E1F2A3B4C5D}</UniqueIdentifier>
@@ -27,71 +36,86 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Core\framework.h">
+    <ClInclude Include="src\Core\framework.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="Core\pch.h">
+    <ClInclude Include="src\Core\pch.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Logger.h">
+    <ClInclude Include="src\Core\Stealth.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Stealth.h">
+    <ClInclude Include="src\Core\Int3Hook.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="Config\Config.h">
+    <ClInclude Include="src\Config\Config.h">
       <Filter>Config</Filter>
     </ClInclude>
-    <ClInclude Include="Hooks\Hooks.h">
+    <ClInclude Include="src\Hooks\Hooks.h">
       <Filter>Hooks</Filter>
     </ClInclude>
-    <ClInclude Include="Patterns\Patterns.h">
+    <ClInclude Include="src\Patterns\Patterns.h">
       <Filter>Patterns</Filter>
     </ClInclude>
-    <ClInclude Include="PillarSuppress\PillarSuppress.h">
-      <Filter>PillarSuppress</Filter>
-    </ClInclude>
-    <ClInclude Include="PickupSuppress\PickupSuppress.h">
+    <ClInclude Include="src\PickupSuppress\PickupSuppress.h">
       <Filter>PickupSuppress</Filter>
     </ClInclude>
-    <ClInclude Include="Scanner\Scanner.h">
+    <ClInclude Include="src\PillarSuppress\PillarSuppress.h">
+      <Filter>PillarSuppress</Filter>
+    </ClInclude>
+    <ClInclude Include="src\SetActiveHook\SetActiveHook.h">
+      <Filter>SetActiveHook</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Logger\Logger.h">
+      <Filter>Logger</Filter>
+    </ClInclude>
+    <ClInclude Include="src\XorStr\XorStr.h">
+      <Filter>XorStr</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Scanner\Scanner.h">
       <Filter>Scanner</Filter>
     </ClInclude>
-    <ClInclude Include="Whitelist\Whitelist.h">
+    <ClInclude Include="src\Whitelist\Whitelist.h">
       <Filter>Whitelist</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Core\dllmain.cpp">
+    <ClCompile Include="src\Core\dllmain.cpp">
       <Filter>Core</Filter>
     </ClCompile>
-    <ClCompile Include="Core\Stealth.cpp">
+    <ClCompile Include="src\Core\Stealth.cpp">
       <Filter>Core</Filter>
     </ClCompile>
-    <ClCompile Include="Core\pch.cpp">
+    <ClCompile Include="src\Core\Int3Hook.cpp">
       <Filter>Core</Filter>
     </ClCompile>
-    <ClCompile Include="Config\Config.cpp">
+    <ClCompile Include="src\Core\pch.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Config\Config.cpp">
       <Filter>Config</Filter>
     </ClCompile>
-    <ClCompile Include="Hooks\Hooks.cpp">
+    <ClCompile Include="src\Hooks\Hooks.cpp">
       <Filter>Hooks</Filter>
     </ClCompile>
-    <ClCompile Include="PillarSuppress\PillarSuppress.cpp">
-      <Filter>PillarSuppress</Filter>
-    </ClCompile>
-    <ClCompile Include="PickupSuppress\PickupSuppress.cpp">
+    <ClCompile Include="src\PickupSuppress\PickupSuppress.cpp">
       <Filter>PickupSuppress</Filter>
     </ClCompile>
-    <ClCompile Include="Scanner\Scanner.cpp">
+    <ClCompile Include="src\PillarSuppress\PillarSuppress.cpp">
+      <Filter>PillarSuppress</Filter>
+    </ClCompile>
+    <ClCompile Include="src\SetActiveHook\SetActiveHook.cpp">
+      <Filter>SetActiveHook</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scanner\Scanner.cpp">
       <Filter>Scanner</Filter>
     </ClCompile>
-    <ClCompile Include="Whitelist\Whitelist.cpp">
+    <ClCompile Include="src\Whitelist\Whitelist.cpp">
       <Filter>Whitelist</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Config\Config.ini">
+    <None Include="src\Config\Config.ini">
       <Filter>Config</Filter>
     </None>
   </ItemGroup>

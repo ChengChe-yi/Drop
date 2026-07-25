@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Scanner.h"
 #include "XorStr.h"
 #include <vector>
@@ -82,7 +82,6 @@ namespace Scanner
         auto parsed = ParsePattern(signature);
         if (parsed.empty()) return 0;
 
-        // Extract pattern and mask to C arrays for SEH-safe scanning
         std::vector<uint8_t> patBytes(parsed.size());
         std::vector<uint8_t> patMask(parsed.size());
         for (size_t i = 0; i < parsed.size(); i++)

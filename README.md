@@ -1,69 +1,26 @@
-# Drop — 原神掉落物屏蔽插件
+# Drop
 
-## 注意
-请先停止使用！
-### 免责声明
+> **免责声明 / Disclaimer**
+>
+> 本软件仅供学习和研究使用。使用本软件所产生的任何后果由使用者自行承担。
+> 使用者应遵守所在地区的法律法规以及相关游戏的服务条款。
+>
+> This software is provided for educational and research purposes only.
+> Users assume all responsibility for any consequences arising from its use.
+> You must comply with all applicable laws and relevant terms of service.
 
-由于是新功能，所以我只能尽量避免被检测，不能百分之百确定使用它不会被检测/封禁；不过就个人测试即便没有任何措施，也仅仅只是踢出游戏。
+---
 
-测试客户端：国服
+> **检测通知 / Detection Notice**
+>
+> 本插件已被检测。
+> 有能力者自行分析。
 
-### 如果出现误屏蔽请打开日志看看误屏蔽了什么
+---
 
-## 功能
-
-移除怪物掉落物光柱和拾取提示框。
-
-- **光柱屏蔽**: 拦截怪物光柱的激活
-- **拾取提示框屏蔽**: 拦截怪物掉落物的拾取提示框的UI
-
-## 配置
-
-```ini
-[PillarFilter]
-Value = 1           ; 总开关 — 0 时所有拦截均跳过
-
-[Log]
-Value = 1           ; 1=写日志 0=关闭
-
-[PillarSuppress]
-Value = 1           ; 1=屏蔽光柱 0=关闭
-
-[PickupSuppress]
-Value = 1          ; 1=屏蔽拾取提示框 0=关闭
-```
-
-### 拾取提示框白名单
-
-`PickupSuppress=1` 时，如需保留某些物品的拾取提示框（不拦截），在 `Whitelist.ini` 中配置：
-
-```ini
-[PickupSuppress]
-史莱姆凝液
-```
-#### 注意白名单是根据你选定的语言来设置的，请确保你的白名单语言和实际游戏语言一致
-
-- `Whitelist.ini` 与 `Config.ini` 同目录
-- 每行一个物品名，精确匹配（与游戏显示名称完全一致）
-- `;` 开头为注释
-- 也支持热重载，编辑后 ~1 秒自动生效
-
-打开日志并重启游戏可查看实际掉落物品的名称（`name='xxx'`），复制到白名单即可。
-
-配置文件热重载（1秒检测），修改后自动生效。
-
-## 使用
-
-略
-
-## 构建
-
-Visual Studio 2022 打开 `Drop.slnx`。
-
-| 配置 | 说明 |
-|------|------|
-| Release x64 | 动态CRT，常规注入 |
-
-编译后自动生成 `Drop.zip`（含 DLL + 本文件）。
-
-
+> **停止发布 / Discontinued**
+>
+> 本项目已停止维护和发布，仅作为技术存档保留。
+>
+> This project is no longer maintained or published.
+> Kept as a technical archive only.

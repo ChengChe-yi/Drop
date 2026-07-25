@@ -1,4 +1,4 @@
-#include "pch.h"
+﻿#include "pch.h"
 #include "Whitelist.h"
 #include "Config.h"
 #include "Logger.h"
@@ -13,9 +13,6 @@ namespace Whitelist
     static ULONGLONG s_lastCheck = 0;
     static ULONGLONG s_lastWrite = 0;
 
-    // ============================================================================
-    // Resolve Whitelist.ini path — same directory as Config.ini (DLL directory)
-    // ============================================================================
     static std::string GetFilePath()
     {
         if (!s_filePath.empty())
@@ -30,10 +27,6 @@ namespace Whitelist
         return s_filePath;
     }
 
-    // ============================================================================
-    // Parse a section from .ini content
-    // Lines between [Section] and next [ or EOF, skipping blanks and ;/# comments
-    // ============================================================================
     static void ParseSection(const std::string& content,
                              const std::string& section,
                              std::vector<std::string>& out)
@@ -59,11 +52,11 @@ namespace Whitelist
                 nl = end;
 
             std::string line = content.substr(pos, nl - pos);
-            // Trim whitespace
+
             line.erase(0, line.find_first_not_of(" \t\r"));
             line.erase(line.find_last_not_of(" \t\r") + 1);
 
-            // Skip empty lines and comments
+
             if (!line.empty() && line[0] != ';' && line[0] != '#')
                 out.push_back(line);
 
@@ -71,9 +64,6 @@ namespace Whitelist
         }
     }
 
-    // ============================================================================
-    // Load — read and parse Whitelist.ini from disk
-    // ============================================================================
     void Load()
     {
         std::string path = GetFilePath();
@@ -93,9 +83,7 @@ namespace Whitelist
             g_pickupWhitelist.size(), path.c_str());
     }
 
-    // ============================================================================
-    // IsPickupAllowed — exact match against the pickup whitelist
-    // ============================================================================
+
     bool IsPickupAllowed(const char* name)
     {
         if (!name || !*name)
@@ -109,10 +97,7 @@ namespace Whitelist
         return false;
     }
 
-    // ============================================================================
-    // Tick — poll Whitelist.ini mtime, reload on change (max once per second)
-    // Call from PD_Thunk after Config::Tick()
-    // ============================================================================
+
     void Tick()
     {
         ULONGLONG now = GetTickCount64();

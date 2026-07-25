@@ -5,17 +5,11 @@
 #include "Patterns.h"
 #include "Logger.h"
 #include "XorStr.h"
-// Called from first B81160 thunk invocation (runs in game thread context)
-// Declared in dllmain.cpp, called from PillarSuppress
+#include "Int3Hook.h"
+
 extern void RunDelayedInit();
 
 #include <cstring>
-
-// ============================================================================
-// PillarSuppress — 光柱屏蔽 (INT3+VEH)
-// Hook B81160 函数入口：拦截所有调用路径
-// 检查 transform name 是否匹配 "SceneObj_DropItem_Monster"，是则跳过
-// ============================================================================
 
 static uint8_t* g_base = nullptr;
 static uint8_t* g_b81160_entry = nullptr;
@@ -31,10 +25,6 @@ static tGetName GetNameFn()
     return fn;
 }
 
-// ============================================================================
-// Helper: read object name from Il2CppString* return value
-// Returns true if name matches, false otherwise
-// ============================================================================
 static bool IsDropItemMonster(__int64 np)
 {
     wchar_t buf[256] = {};
@@ -52,19 +42,9 @@ static bool IsDropItemMonster(__int64 np)
     return (nameLen > 0 && XWCSSTR(buf, L"SceneObj_DropItem_Monster"));
 }
 
-// ============================================================================
-// B81160_Thunk — called by VEH when INT3 is hit at B81160 entry
-// Arguments arrive in rcx, rdx, r8, r9 (original B81160 args)
-//
-// Block path:  ReArm, return 0
-// Proceed path: call orig at g_b81160_entry, ReArm, return orig's result
-// ============================================================================
 static __int64 __fastcall B81160_Thunk(__int64 a1, unsigned int a2, __int64 a3, __int64 a4)
 {
-    // Delayed init on first call (no CreateThread needed)
     RunDelayedInit();
-
-    // Lazy config hot-reload poll (runs on the game thread)
     Config::Tick();
 
     char nameUtf8[256] = {};
@@ -72,7 +52,6 @@ static __int64 __fastcall B81160_Thunk(__int64 a1, unsigned int a2, __int64 a3, 
 
     auto gn = GetNameFn();
     if (gn && Config::g_pillarFilterEnabled && Config::g_pillarSuppressEnabled) {
-        // a3 = transform/object; a2 = typeId
         __int64 np = 0;
         __try {
             np = gn(a3, 0);
@@ -95,15 +74,11 @@ static __int64 __fastcall B81160_Thunk(__int64 a1, unsigned int a2, __int64 a3, 
         return 0;
     }
 
-    // Proceed: call the original function (entry is now intact)
     auto result = ((tB81160)g_b81160_entry)(a1, a2, a3, a4);
     Int3Hook::ReArm(g_b81160_entry);
     return result;
 }
 
-// ============================================================================
-// Init — install INT3 at B81160 entry
-// ============================================================================
 static bool DoInit()
 {
     g_base = (uint8_t*)GetModuleHandleW(XWSTR(L"YuanShen.exe"));
@@ -118,9 +93,6 @@ static bool DoInit()
     return Int3Hook::Install(g_b81160_entry, (void*)B81160_Thunk);
 }
 
-// ============================================================================
-// Interface
-// ============================================================================
 bool PillarSuppress::Init()
 {
     __try { return DoInit(); }

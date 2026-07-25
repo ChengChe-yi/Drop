@@ -28,7 +28,7 @@ MinHook/libMinHook.x64.lib
 MinHook/libMinHook.x86.lib
 
 # Config (user-specific)
-Config/Config.ini
+src/Config/Config.ini
 
 # UPX packer
 upx-5.2.0/
@@ -40,3 +40,9 @@ install.lua
 *.opendb
 *.db
 *.opendb2
+
+# Claude Code memory
+.claude/
+
+# Solution file 
+*.slnx

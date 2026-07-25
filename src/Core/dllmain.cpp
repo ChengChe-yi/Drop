@@ -1,13 +1,14 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Hooks.h"
 #include "Config.h"
 #include "Logger.h"
 #include "Stealth.h"
+#include "PickupSuppress.h"
 #include <atomic>
 
 namespace Config { HMODULE g_hModule = nullptr; }
 
-// Delayed init — runs from first B81160 handler call (game thread, no extra thread)
+// Delayed init — runs from first hook callback (game thread context)
 static std::atomic<bool> g_initDone{false};
 
 void RunDelayedInit()
@@ -21,7 +22,7 @@ void RunDelayedInit()
 
     Config::StartHotReload();
 
-    LOG_MSG("Drop", "Hooks already installed in DllMain");
+    LOG_MSG("Drop", "Hooks installed in DllMain");
 
     Stealth::ErasePEHeader();
 }
@@ -38,10 +39,8 @@ BOOL APIENTRY DllMain(HMODULE hModule,
         Stealth::Init();
         InitLogFile(hModule);
 
-        // Install hooks directly in DllMain (safe: VirtualProtect only)
-        // No thread creation, no file I/O, no config thread
-        if (Hooks::Init())
-            /* hooks installed */;
+        // Install FF 25 JMP hook immediately
+        Hooks::Init();
         break;
 
     case DLL_PROCESS_DETACH:

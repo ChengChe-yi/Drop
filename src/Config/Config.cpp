@@ -12,8 +12,8 @@ namespace Config
     bool g_pickupSuppressEnabled = true;
     bool g_pillarFilterEnabled   = true;  
 
-    static ULONGLONG g_lastCheck = 0;   // GetTickCount64 ms of last poll
-    static ULONGLONG g_lastWrite = 0;   // Last known file mtime (100ns ticks)
+    static ULONGLONG g_lastCheck = 0;   
+    static ULONGLONG g_lastWrite = 0;   
 
     std::string GetConfigPath()
     {
@@ -39,7 +39,6 @@ namespace Config
             return {};
 
 
-        // Find end of section: next [Section] at line start, or end of file
         auto sectionEnd = content.size();
         auto searchPos = sectionStart + sectionHeader.size();
         while (true) {
@@ -115,17 +114,14 @@ namespace Config
         std::string content((std::istreambuf_iterator<char>(f)),
                              std::istreambuf_iterator<char>());
 
-        // [Log] — 日志开关
+   
         g_logEnabled = ParseBool(ReadIniValue(content, "Log", "Value"), true);
-        g_logWriteEnabled = g_logEnabled;  // sync Logger toggle
+        g_logWriteEnabled = g_logEnabled; 
 
-        // [PillarSuppress] — 光柱屏蔽
         g_pillarSuppressEnabled = ParseBool(ReadIniValue(content, "PillarSuppress", "Value"), true);
 
-        // [PickupSuppress] — 拾取提示框屏蔽
         g_pickupSuppressEnabled = ParseBool(ReadIniValue(content, "PickupSuppress", "Value"), true);
 
-        // [PillarFilter] — 旧总开关（兼容）
         std::string v = ReadIniValue(content, "PillarFilter", "Value");
         if (!v.empty())
             g_pillarFilterEnabled = ParseBool(v, true);
@@ -136,8 +132,6 @@ namespace Config
             (int)g_pillarFilterEnabled, (int)g_logEnabled, (int)g_pillarSuppressEnabled, (int)g_pickupSuppressEnabled);
     }
 
-    // Lazy hot-reload poll. Called from hook handlers on the game thread.
-    // Polls at most once per second; reloads when the file mtime changes.
     void Tick()
     {
         ULONGLONG now = GetTickCount64();
@@ -171,6 +165,6 @@ namespace Config
 
     void StopHotReload()
     {
-        // No thread/event to clean up — polling runs on the game thread.
+
     }
 }

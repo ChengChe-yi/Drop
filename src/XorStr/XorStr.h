@@ -3,10 +3,6 @@
 #include <cstring>
 #include <atomic>
 
-// ============================================================================
-// Compile-time XOR string encryption — thread-safe
-// ============================================================================
-
 namespace Xor
 {
     static constexpr uint8_t g_key[] = {
@@ -15,7 +11,6 @@ namespace Xor
     static constexpr size_t g_keyLen = sizeof(g_key);
 }
 
-/// Compile-time XOR-encrypted narrow string (thread-safe)
 template <size_t N>
 struct XorString
 {
@@ -39,7 +34,6 @@ struct XorString
     }
 };
 
-/// Compile-time XOR-encrypted wide string (thread-safe)
 template <size_t N>
 struct XorStringW
 {
