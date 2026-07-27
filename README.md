@@ -11,16 +11,11 @@
 
 ---
 
-> **检测通知 / Detection Notice**
->
-> 本插件已被检测。
-> 有能力者自行分析。
-
----
-
 > **停止发布 / Discontinued**
 >
-> 本项目已停止维护和发布，仅作为技术存档保留。
->
-> This project is no longer maintained or published.
-> Kept as a technical archive only.
+> 由于不可抗力，我可能不会发布二进制文件，只会更新源码。
+> 有需要者自行构建
+
+## 描述
+
+这是一个用于屏蔽掉落物拾取提示框和光柱的插件
