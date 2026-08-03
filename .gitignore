@@ -43,6 +43,6 @@ install.lua
 
 # Claude Code memory
 .claude/
-
+.reasonix/
 # Solution file 
 *.slnx
