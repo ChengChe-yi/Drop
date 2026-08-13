@@ -24,7 +24,7 @@ namespace Offsets
         inline constexpr uintptr_t SetActiveUnwrap  = 0x1129D70;   
         inline constexpr uintptr_t GameObjectSetActive = 0x168BE30; 
         inline constexpr uintptr_t GetName          = 0x1117FF0;
-        inline constexpr uintptr_t PickupDataAdd    = 0x9459DA0;   
+        inline constexpr uintptr_t PickupDataAdd    = 0xF4944B0;   // IDA: sub_14F4944B0 (VA 0x14F4944B0, base 0x140000000 => RVA 0xF4944B0); 旧值 0x9459DA0 已失效
         inline constexpr uintptr_t B81160_RVA       = 0x11B81160;
         inline constexpr uintptr_t AddPickupOption  = 0xBF5F7D0;
         inline constexpr uintptr_t CreatePickupItem = 0xDAE3060;   

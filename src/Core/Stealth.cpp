@@ -5,7 +5,7 @@
 #include "Logger.h"
 #include <cstring>
 
-// Manual NT structures (winternl.h definitions are incomplete)
+
 typedef struct _UNICODE_STRING {
     USHORT Length;
     USHORT MaximumLength;

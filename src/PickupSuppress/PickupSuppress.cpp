@@ -84,8 +84,9 @@ static __int64 __fastcall PD_Handler(__int64 a1, __int64 a2)
 
     __try {
         if (a2 && Config::g_pillarFilterEnabled && Config::g_pickupSuppressEnabled) {
-            ReadStringUtf8SEH(*(__int64*)(a2 + 0x30), iconUtf8, 64);
-            ReadStringUtf8SEH(*(__int64*)(a2 + 0x20), nameUtf8, 64);
+            // 新版对象布局（实测 dump）：name 在 a2+0x18，icon 在 a2+0x28
+            ReadStringUtf8SEH(*(__int64*)(a2 + 0x28), iconUtf8, 64);
+            ReadStringUtf8SEH(*(__int64*)(a2 + 0x18), nameUtf8, 64);
 
             LOG("PDhook", "icon='%s' name='%s' (depth=%d)", iconUtf8, nameUtf8, g_depth);
 

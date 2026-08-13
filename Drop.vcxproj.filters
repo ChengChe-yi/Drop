@@ -4,6 +4,9 @@
     <Filter Include="Core">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Pch">
+      <UniqueIdentifier>{8C5A9E7B-3F2D-4A6C-B8E0-1D4F7A2C9E3B}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Config">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
     </Filter>
@@ -39,8 +42,8 @@
     <ClInclude Include="src\Core\framework.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="src\Core\pch.h">
-      <Filter>Core</Filter>
+    <ClInclude Include="src\Pch\pch.h">
+      <Filter>Pch</Filter>
     </ClInclude>
     <ClInclude Include="src\Core\Stealth.h">
       <Filter>Core</Filter>
@@ -89,8 +92,8 @@
     <ClCompile Include="src\Core\Int3Hook.cpp">
       <Filter>Core</Filter>
     </ClCompile>
-    <ClCompile Include="src\Core\pch.cpp">
-      <Filter>Core</Filter>
+    <ClCompile Include="src\Pch\pch.cpp">
+      <Filter>Pch</Filter>
     </ClCompile>
     <ClCompile Include="src\Config\Config.cpp">
       <Filter>Config</Filter>
@@ -117,6 +120,9 @@
   <ItemGroup>
     <None Include="src\Config\Config.ini">
       <Filter>Config</Filter>
+    </None>
+    <None Include="src\Whitelist\Whitelist.ini">
+      <Filter>Whitelist</Filter>
     </None>
   </ItemGroup>
 </Project>
