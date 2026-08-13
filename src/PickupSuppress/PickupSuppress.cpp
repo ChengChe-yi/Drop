@@ -118,7 +118,8 @@ static __int64 __fastcall PD_Handler(__int64 a1, __int64 a2)
 static bool DoInit()
 {
     if (!g_base)
-        g_base = (uint8_t*)GetModuleHandleW(XWSTR(L"YuanShen.exe"));
+        // 主模块即注入目标，不依赖具体 exe 名
+        g_base = (uint8_t*)GetModuleHandleW(nullptr);
     if (!g_base) return false;
 
     g_target = g_base + Offsets::RVA::PickupDataAdd;
@@ -127,7 +128,7 @@ static bool DoInit()
 
     BuildJmpBytes(g_jmpBytes, PD_Handler);
 
-    LOG("PDhook", "EFNHHIFBIMP entry = %llX, orig = %02X %02X %02X %02X...",
+    LOG("PDhook", "target entry = %llX, orig = %02X %02X %02X %02X...",
         (uint64_t)g_target,
         g_origBytes[0], g_origBytes[1], g_origBytes[2], g_origBytes[3]);
 

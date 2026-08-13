@@ -10,7 +10,7 @@ namespace Scanner
     {
         static uintptr_t base = 0;
         if (base == 0)
-            base = (uintptr_t)GetModuleHandleW(XWSTR(L"YuanShen.exe"));
+            base = (uintptr_t)GetModuleHandleW(nullptr); // 主模块即注入目标
         return base;
     }
 
@@ -20,7 +20,7 @@ namespace Scanner
         if (size == 0)
         {
             MODULEINFO info = {};
-            if (GetModuleInformation(GetCurrentProcess(), GetModuleHandleW(XWSTR(L"YuanShen.exe")), &info, sizeof(info)))
+            if (GetModuleInformation(GetCurrentProcess(), GetModuleHandleW(nullptr), &info, sizeof(info)))
                 size = info.SizeOfImage;
         }
         return size;
