@@ -19,9 +19,6 @@
     <Filter Include="PickupSuppress">
       <UniqueIdentifier>{9F3A4B5C-6D7E-4F8A-9B0C-1D2E3F4A5B6C}</UniqueIdentifier>
     </Filter>
-    <Filter Include="PillarSuppress">
-      <UniqueIdentifier>{8E2F3A4B-5C6D-4E7F-8A9B-0C1D2E3F4A5B}</UniqueIdentifier>
-    </Filter>
     <Filter Include="SetActiveHook">
       <UniqueIdentifier>{7A3F9B8C-2D4E-4F6A-8B1C-3D5E7F9A0B2C}</UniqueIdentifier>
     </Filter>
@@ -63,9 +60,6 @@
     <ClInclude Include="src\PickupSuppress\PickupSuppress.h">
       <Filter>PickupSuppress</Filter>
     </ClInclude>
-    <ClInclude Include="src\PillarSuppress\PillarSuppress.h">
-      <Filter>PillarSuppress</Filter>
-    </ClInclude>
     <ClInclude Include="src\SetActiveHook\SetActiveHook.h">
       <Filter>SetActiveHook</Filter>
     </ClInclude>
@@ -103,9 +97,6 @@
     </ClCompile>
     <ClCompile Include="src\PickupSuppress\PickupSuppress.cpp">
       <Filter>PickupSuppress</Filter>
-    </ClCompile>
-    <ClCompile Include="src\PillarSuppress\PillarSuppress.cpp">
-      <Filter>PillarSuppress</Filter>
     </ClCompile>
     <ClCompile Include="src\SetActiveHook\SetActiveHook.cpp">
       <Filter>SetActiveHook</Filter>

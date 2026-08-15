@@ -222,7 +222,6 @@
     <ClInclude Include="src\Core\Stealth.h" />
     <ClInclude Include="src\Core\Int3Hook.h" />
     <ClInclude Include="src\PickupSuppress\PickupSuppress.h" />
-    <ClInclude Include="src\PillarSuppress\PillarSuppress.h" />
     <ClInclude Include="src\SetActiveHook\SetActiveHook.h" />
     <ClInclude Include="src\Logger\Logger.h" />
     <ClInclude Include="src\XorStr\XorStr.h" />
@@ -234,7 +233,6 @@
     <ClCompile Include="src\Hooks\Hooks.cpp" />
     <ClCompile Include="src\Config\Config.cpp" />
     <ClCompile Include="src\PickupSuppress\PickupSuppress.cpp" />
-    <ClCompile Include="src\PillarSuppress\PillarSuppress.cpp" />
     <ClCompile Include="src\SetActiveHook\SetActiveHook.cpp" />
     <ClCompile Include="src\Scanner\Scanner.cpp" />
     <ClCompile Include="src\Pch\pch.cpp">
