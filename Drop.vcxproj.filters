@@ -4,9 +4,6 @@
     <Filter Include="Core">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Pch">
-      <UniqueIdentifier>{8C5A9E7B-3F2D-4A6C-B8E0-1D4F7A2C9E3B}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Config">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
     </Filter>
@@ -32,9 +29,6 @@
   <ItemGroup>
     <ClInclude Include="src\Core\framework.h">
       <Filter>Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Pch\pch.h">
-      <Filter>Pch</Filter>
     </ClInclude>
     <ClInclude Include="src\Config\Config.h">
       <Filter>Config</Filter>
@@ -62,9 +56,6 @@
     <ClCompile Include="src\Core\dllmain.cpp">
       <Filter>Core</Filter>
     </ClCompile>
-    <ClCompile Include="src\Pch\pch.cpp">
-      <Filter>Pch</Filter>
-    </ClCompile>
     <ClCompile Include="src\Config\Config.cpp">
       <Filter>Config</Filter>
     </ClCompile>
@@ -76,6 +67,9 @@
     </ClCompile>
     <ClCompile Include="src\Scanner\Scanner.cpp">
       <Filter>Scanner</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Logger\Logger.cpp">
+      <Filter>Logger</Filter>
     </ClCompile>
     <ClCompile Include="src\Whitelist\Whitelist.cpp">
       <Filter>Whitelist</Filter>

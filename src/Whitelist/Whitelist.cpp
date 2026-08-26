@@ -1,64 +1,125 @@
-﻿#include "pch.h"
+#include "framework.h"
 #include "Whitelist.h"
 #include "Config.h"
 #include "Logger.h"
-#include <fstream>
-#include <string>
-#include <vector>
+#include <cstring>
 
 namespace Whitelist
 {
-    static std::vector<std::string> g_pickupWhitelist;
-    static std::string s_filePath;
+    // Fixed-size whitelist. Each entry is a C string of up to kEntryLen chars.
+    static constexpr size_t kMaxEntries = 256;
+    static constexpr size_t kEntryLen   = 128;
+
+    static char  g_pickupWhitelist[kMaxEntries][kEntryLen];
+    static size_t g_pickupCount = 0;
+    static char  s_filePath[MAX_PATH];
+    static bool  s_filePathReady = false;
     static ULONGLONG s_lastCheck = 0;
     static ULONGLONG s_lastWrite = 0;
 
-    static std::string GetFilePath()
+    static const char* GetFilePath()
     {
-        if (!s_filePath.empty())
-            return s_filePath;
+        if (s_filePathReady) return s_filePath;
 
-        std::string configPath = Config::GetConfigPath();
-        auto pos = configPath.find_last_of("\\/");
-        if (pos != std::string::npos)
-            s_filePath = configPath.substr(0, pos + 1) + "Whitelist.ini";
+        char configPath[MAX_PATH];
+        if (Config::GetConfigPath(configPath, sizeof(configPath)) == 0) {
+            s_filePath[0] = 0;
+            s_filePathReady = true;
+            return s_filePath;
+        }
+
+        // Strip to directory portion.
+        char* lastSlash = nullptr;
+        for (char* p = configPath; *p; ++p)
+            if (*p == '\\' || *p == '/') lastSlash = p;
+        if (lastSlash)
+            lastSlash[1] = 0;
         else
-            s_filePath = "Whitelist.ini";
+            configPath[0] = 0;
+
+        strcpy_s(s_filePath, configPath);
+        strcat_s(s_filePath, "Whitelist.ini");
+        s_filePathReady = true;
         return s_filePath;
     }
 
-    static void ParseSection(const std::string& content,
-                             const std::string& section,
-                             std::vector<std::string>& out)
+    // Copy up to outChars-1 bytes from `start` (delimited by `end`) into `out`.
+    // Strips leading/trailing whitespace, returns number of bytes copied.
+    static size_t CopyTrimmed(const char* start, const char* end,
+                              char* out, size_t outChars)
     {
-        out.clear();
+        if (outChars == 0) return 0;
+        while (start < end && (*start == ' ' || *start == '\t' || *start == '\r' || *start == '\n'))
+            ++start;
+        while (end > start && (*(end - 1) == ' ' || *(end - 1) == '\t' || *(end - 1) == '\r' || *(end - 1) == '\n'))
+            --end;
+        size_t len = (size_t)(end - start);
+        if (len >= outChars) len = outChars - 1;
+        memcpy(out, start, len);
+        out[len] = 0;
+        return len;
+    }
 
-        std::string header = "[" + section + "]";
-        auto start = content.find(header);
-        if (start == std::string::npos)
-            return;
-        start += header.size();
+    // Find "[section]" header inside `content`. Returns pointer to its '[' or nullptr.
+    static const char* FindSection(const char* content, const char* section)
+    {
+        char header[128];
+        size_t secLen = strlen(section);
+        if (secLen + 2 >= sizeof(header)) return nullptr;
+        header[0] = '[';
+        memcpy(header + 1, section, secLen);
+        header[secLen + 1] = ']';
+        header[secLen + 2] = 0;
+        return strstr(content, header);
+    }
 
-        auto end = content.size();
-        auto nextBracket = content.find("\n[", start);
-        if (nextBracket != std::string::npos)
-            end = nextBracket;
+    // Locate the end of the section that starts at `headerStart` (points at '[').
+    // Returns the pointer to the '\n' just before the next "[" header, or to
+    // the null terminator if there is no next section.
+    static const char* FindSectionEnd(const char* headerStart)
+    {
+        const char* searchPos = strchr(headerStart, '\n');
+        if (!searchPos) return headerStart + strlen(headerStart);
+        const char* sectionEnd = headerStart + strlen(headerStart);
+        while (searchPos) {
+            const char* nextLine = searchPos + 1;
+            while (*nextLine == ' ' || *nextLine == '\t' || *nextLine == '\r')
+                ++nextLine;
+            if (*nextLine == '[') {
+                sectionEnd = searchPos;
+                break;
+            }
+            searchPos = strchr(nextLine, '\n');
+        }
+        return sectionEnd;
+    }
 
-        size_t pos = start;
-        while (pos < end)
-        {
-            auto nl = content.find('\n', pos);
-            if (nl == std::string::npos)
-                nl = end;
+    static void ParseSection(const char* content,
+                             const char* section,
+                             char (*out)[kEntryLen],
+                             size_t outMax,
+                             size_t* outCount)
+    {
+        *outCount = 0;
+        const char* hdr = FindSection(content, section);
+        if (!hdr) return;
 
-            std::string line = content.substr(pos, nl - pos);
+        const char* sectionEnd = FindSectionEnd(hdr);
+        const char* pos = strchr(hdr, '\n');
+        if (!pos) return;
+        ++pos;
 
-            line.erase(0, line.find_first_not_of(" \t\r"));
-            line.erase(line.find_last_not_of(" \t\r") + 1);
+        while (pos < sectionEnd && *outCount < outMax) {
+            const char* nl = pos;
+            while (nl < sectionEnd && *nl != '\n') ++nl;
 
+            char trimmed[kEntryLen];
+            CopyTrimmed(pos, nl, trimmed, sizeof(trimmed));
 
-            if (!line.empty() && line[0] != ';' && line[0] != '#')
-                out.push_back(line);
+            if (trimmed[0] && trimmed[0] != ';' && trimmed[0] != '#') {
+                memcpy(out[*outCount], trimmed, sizeof(trimmed));
+                ++(*outCount);
+            }
 
             pos = nl + 1;
         }
@@ -66,58 +127,80 @@ namespace Whitelist
 
     void Load()
     {
-        std::string path = GetFilePath();
-        std::ifstream f(path);
-        if (!f.is_open())
-        {
-            g_pickupWhitelist.clear();
+        const char* path = GetFilePath();
+
+        HANDLE h = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                               NULL, OPEN_EXISTING, 0, NULL);
+        if (h == INVALID_HANDLE_VALUE) {
+            g_pickupCount = 0;
             return;
         }
 
-        std::string content((std::istreambuf_iterator<char>(f)),
-                             std::istreambuf_iterator<char>());
+        DWORD size = GetFileSize(h, NULL);
+        if (size == INVALID_FILE_SIZE || size == 0) {
+            CloseHandle(h);
+            g_pickupCount = 0;
+            return;
+        }
 
-        ParseSection(content, "PickupSuppress", g_pickupWhitelist);
+        // Read into a heap buffer with one extra byte for the null terminator.
+        // Cap at a reasonable maximum so a runaway file can't allocate gigabytes.
+        char stackBuf[8192];
+        char* content = stackBuf;
+        char* heapBuf = nullptr;
+        if (size + 1 > sizeof(stackBuf)) {
+            if (size + 1 > 1 * 1024 * 1024) { // 1 MiB hard cap
+                CloseHandle(h);
+                g_pickupCount = 0;
+                return;
+            }
+            heapBuf = new char[size + 1];
+            content = heapBuf;
+        }
 
-        LOG("Whitelist", "Loaded %zu items from %s",
-            g_pickupWhitelist.size(), path.c_str());
+        DWORD got = 0;
+        BOOL ok2 = ReadFile(h, content, size, &got, NULL);
+        CloseHandle(h);
+        if (!ok2 || got != size) {
+            delete[] heapBuf;
+            g_pickupCount = 0;
+            return;
+        }
+        content[got] = 0;
+
+        ParseSection(content, "PickupSuppress",
+                     g_pickupWhitelist, kMaxEntries, &g_pickupCount);
+
+        LOG("Whitelist", "Loaded %zu items from %s", g_pickupCount, path);
+
+        delete[] heapBuf;
     }
-
 
     bool IsPickupAllowed(const char* name)
     {
-        if (!name || !*name)
-            return false;
-
-        for (const auto& entry : g_pickupWhitelist)
-        {
-            if (entry == name)
+        if (!name || !*name) return false;
+        for (size_t i = 0; i < g_pickupCount; ++i) {
+            if (strcmp(g_pickupWhitelist[i], name) == 0)
                 return true;
         }
         return false;
     }
 
-
     void Tick()
     {
         ULONGLONG now = GetTickCount64();
-        if (now - s_lastCheck < 1000)
-            return;
+        if (now - s_lastCheck < 1000) return;
         s_lastCheck = now;
 
-        std::string path = GetFilePath();
-
-        HANDLE h = CreateFileA(path.c_str(), GENERIC_READ,
+        const char* path = GetFilePath();
+        HANDLE h = CreateFileA(path, GENERIC_READ,
                                FILE_SHARE_READ | FILE_SHARE_WRITE,
                                NULL, OPEN_EXISTING, 0, NULL);
-        if (h != INVALID_HANDLE_VALUE)
-        {
+        if (h != INVALID_HANDLE_VALUE) {
             FILETIME ft;
-            if (GetFileTime(h, NULL, NULL, &ft))
-            {
+            if (GetFileTime(h, NULL, NULL, &ft)) {
                 ULONGLONG wt = ((ULONGLONG)ft.dwHighDateTime << 32) | ft.dwLowDateTime;
-                if (wt != s_lastWrite)
-                {
+                if (wt != s_lastWrite) {
                     s_lastWrite = wt;
                     LOG_MSG("Whitelist", "File change detected, reloading...");
                     Load();

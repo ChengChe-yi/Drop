@@ -1,11 +1,9 @@
-#include "pch.h"
+#include "framework.h"
 #include "Hooks.h"
 #include "Config.h"
 #include "Logger.h"
 #include "PickupSuppress.h"
 #include <atomic>
-
-namespace Config { HMODULE g_hModule = nullptr; }
 
 static std::atomic<bool> g_initDone{false};
 
@@ -32,7 +30,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     case DLL_PROCESS_ATTACH:
         Config::g_hModule = hModule;
         DisableThreadLibraryCalls(hModule);
-        InitLogFile(hModule);
+        Logger::InitLogFile(hModule);
         Hooks::Init();
         break;
 
@@ -41,7 +39,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
         {
             Config::StopHotReload();
             Hooks::Uninit();
-            CloseLog();
+            Logger::CloseLog();
         }
         break;
     }

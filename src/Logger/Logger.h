@@ -1,64 +1,48 @@
 #pragma once
 #include <cstdio>
 #include <windows.h>
-#include <cstring>
 #include <atomic>
 
-inline std::atomic<bool> g_logWriteEnabled{true};
+// ----------------------------------------------------------------------------
+// Logger — thin file logger used by LOG() / LOG_MSG() macros.
+//
+// All state lives in Logger.cpp (single TU), so we use `extern` instead of
+// C++17 `inline` variables. This avoids the ODR-with-mutable-state trap that
+// existed in the previous header-only version where `g_logWriteEnabled` and
+// `g_logLock` were `inline` and could be written from any TU without a clear
+// owner.
+// ----------------------------------------------------------------------------
 
-inline wchar_t g_logPath[MAX_PATH] = {};
-inline bool    g_logPathReady = false;
-inline SRWLOCK g_logLock = SRWLOCK_INIT;
+namespace Logger
+{
+    // Master switch. Mirrors Config.ini → [Log] Value after Reload().
+    extern std::atomic<bool> g_logWriteEnabled;
 
-static inline void InitLogFile(HMODULE hModule) {
-    if (g_logPathReady) return;
+    // Initialize the log file path. Safe to call multiple times — only the
+    // first call has any effect.
+    void InitLogFile(HMODULE hModule);
 
-    wchar_t modulePath[MAX_PATH] = {};
-    if (!hModule || GetModuleFileNameW(hModule, modulePath, MAX_PATH) == 0)
-        GetModuleFileNameW(nullptr, modulePath, MAX_PATH);
+    // Append a single line to Drop.log. Caller already formats the line.
+    void WriteLog(const char* text);
 
-    wchar_t* lastSlash = wcsrchr(modulePath, L'\\');
-    if (lastSlash)
-        wcscpy_s(lastSlash + 1, MAX_PATH - (lastSlash - modulePath + 1), L"Drop.log");
-    else
-        wcscpy_s(modulePath, L"Drop.log");
-
-    wcscpy_s(g_logPath, modulePath);
-    g_logPathReady = (g_logPath[0] != 0);
+    // Reserved for future buffer flushing. Currently a no-op.
+    void CloseLog();
 }
 
-static inline void WriteLog(const char* text) {
-    if (!g_logWriteEnabled || !g_logPathReady) return;
-
-    AcquireSRWLockExclusive(&g_logLock);
-    FILE* f = nullptr;
-    _wfopen_s(&f, g_logPath, L"ab");
-    if (f) {
-        fseek(f, 0, SEEK_END);
-        if (ftell(f) == 0) {
-            const unsigned char bom[] = { 0xEF, 0xBB, 0xBF };
-            fwrite(bom, 1, 3, f);
-        }
-        fwrite(text, 1, strlen(text), f);
-        fclose(f);
-    }
-    ReleaseSRWLockExclusive(&g_logLock);
-}
-
-static inline void CloseLog() {}
-
+// Macro: LOG(tag, fmt, ...) — formatted printf-style log line.
+// Macro: LOG_MSG(tag, msg)   — fixed-string log line.
 #define LOG(tag, fmt, ...)                                                          \
     do {                                                                            \
         SYSTEMTIME _st;                                                             \
         GetLocalTime(&_st);                                                         \
         char _fmt[1024];                                                            \
         sprintf_s(_fmt, sizeof(_fmt), "[%%02d:%%02d:%%02d.%%03d][%s] %s\n",         \
-            tag, fmt);                                                              \
+            (tag), (fmt));                                                          \
         char _buf[1024];                                                            \
         int _len = sprintf_s(_buf, sizeof(_buf), _fmt,                              \
             _st.wHour, _st.wMinute, _st.wSecond, _st.wMilliseconds,                 \
             __VA_ARGS__);                                                           \
-        if (_len > 0) WriteLog(_buf);                                               \
+        if (_len > 0) ::Logger::WriteLog(_buf);                                     \
     } while (0)
 
 #define LOG_MSG(tag, msg)                                                           \
@@ -67,9 +51,9 @@ static inline void CloseLog() {}
         GetLocalTime(&_st);                                                         \
         char _fmt[1024];                                                            \
         sprintf_s(_fmt, sizeof(_fmt), "[%%02d:%%02d:%%02d.%%03d][%s] %s\n",         \
-            tag, msg);                                                              \
+            (tag), (msg));                                                          \
         char _buf[1024];                                                            \
         int _len = sprintf_s(_buf, sizeof(_buf), _fmt,                              \
             _st.wHour, _st.wMinute, _st.wSecond, _st.wMilliseconds);                \
-        if (_len > 0) WriteLog(_buf);                                               \
+        if (_len > 0) ::Logger::WriteLog(_buf);                                     \
     } while (0)

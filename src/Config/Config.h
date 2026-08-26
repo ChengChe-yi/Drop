@@ -1,4 +1,5 @@
-﻿#pragma once
+#pragma once
+#include <windows.h>
 
 namespace Config
 {
@@ -18,7 +19,10 @@ namespace Config
     extern HMODULE g_hModule;
 
     void Reload();
-    std::string GetConfigPath();
+    // Returns the full path to Config.ini (next to the host module).
+    // Caller-provided buffer; returns the number of bytes written (excluding
+    // the null terminator), or 0 on failure.
+    size_t GetConfigPath(char* buf, size_t bufChars);
 
     // Lazy hot-reload poll — call from hook handlers on the game thread.
     // Polls Config.ini mtime at most once per second; reloads on change.

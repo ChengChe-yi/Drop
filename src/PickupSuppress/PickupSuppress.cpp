@@ -1,9 +1,10 @@
-#include "pch.h"
+#include "framework.h"
 #include "PickupSuppress.h"
 #include "Patterns.h"
 #include "Config.h"
 #include "Logger.h"
 #include "Whitelist.h"
+#include <cstdint>
 #include <cstring>
 
 static uint8_t* g_base = nullptr;
