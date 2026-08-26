@@ -2,28 +2,45 @@
 #include <windows.h>
 #include "Config.h"
 #include "Logger.h"
+#include "Whitelist.h"
 #include <cstring>
 
 namespace Config
 {
-    bool g_logEnabled            = true;
-    bool g_pillarSuppressEnabled = true;
-    bool g_pickupSuppressEnabled = true;
-    bool g_pillarFilterEnabled   = true;
+    // MSVC linker intrinsic — the address of this symbol is the DLL's
+    // HMODULE. We use it to anchor Config.ini next to *this* DLL instead of
+    // the host EXE. Declared at file scope so the `extern "C"` is valid.
+    extern "C" IMAGE_DOS_HEADER __ImageBase;
 
-    HMODULE g_hModule = nullptr;
+    std::atomic<bool> g_logEnabled{true};
+    std::atomic<bool> g_pickupSuppressEnabled{true};
 
     static ULONGLONG g_lastCheck = 0;
     static ULONGLONG g_lastWrite = 0;
+    static char      g_cachedPath[MAX_PATH];
+    static bool      g_cachedPathReady = false;
+
+    static HANDLE s_tickThread = nullptr;
+    static HANDLE s_tickStop   = nullptr;
 
     size_t GetConfigPath(char* buf, size_t bufChars)
     {
         if (!buf || bufChars == 0) return 0;
         buf[0] = 0;
 
-        HMODULE hMod = g_hModule;
-        if (!hMod)
-            hMod = GetModuleHandleW(nullptr);
+        // Cache: the DLL path never changes for a given process, so we
+        // compute the full Config.ini path once and reuse it for every Tick.
+        if (g_cachedPathReady) {
+            size_t len = strlen(g_cachedPath);
+            if (len + 1 > bufChars) return 0;
+            memcpy(buf, g_cachedPath, len + 1);
+            return len;
+        }
+
+        // Anchor Config.ini next to *this* DLL, not the host EXE. The
+        // `&__ImageBase` trick gives us our own module handle without any
+        // external state plumbing.
+        HMODULE hMod = reinterpret_cast<HMODULE>(&__ImageBase);
 
         char path[MAX_PATH];
         DWORD n = GetModuleFileNameA(hMod, path, MAX_PATH);
@@ -42,9 +59,13 @@ namespace Config
         size_t dirLen = strlen(path);
         const char* suffix = "Config.ini";
         size_t sufLen = strlen(suffix);
+        if (dirLen + sufLen + 1 > sizeof(g_cachedPath)) return 0;
+        memcpy(g_cachedPath, path, dirLen);
+        memcpy(g_cachedPath + dirLen, suffix, sufLen + 1); // include null terminator
+        g_cachedPathReady = true;
+
         if (dirLen + sufLen + 1 > bufChars) return 0;
-        memcpy(buf, path, dirLen);
-        memcpy(buf + dirLen, suffix, sufLen + 1); // include null terminator
+        memcpy(buf, g_cachedPath, dirLen + sufLen + 1);
         return dirLen + sufLen;
     }
 
@@ -134,10 +155,15 @@ namespace Config
                 continue;
             }
 
-            // Trim value and copy out.
+            // Trim value, strip an inline `;` or `#` comment, and copy out.
             const char* vBegin = eq + 1;
             const char* vEnd = lineEnd;
             while (vBegin < vEnd && (*vBegin == ' ' || *vBegin == '\t')) ++vBegin;
+            while (vEnd > vBegin && (*(vEnd - 1) == ' ' || *(vEnd - 1) == '\t')) --vEnd;
+            // Truncate at the first `;` or `#` so `Value = 0// note` parses as `0`.
+            for (const char* c = vBegin; c < vEnd; ++c) {
+                if (*c == ';' || *c == '#') { vEnd = c; break; }
+            }
             while (vEnd > vBegin && (*(vEnd - 1) == ' ' || *(vEnd - 1) == '\t')) --vEnd;
 
             size_t valLen = (size_t)(vEnd - vBegin);
@@ -167,7 +193,9 @@ namespace Config
     static bool ParseBool(const char* v, bool defaultVal)
     {
         if (!v || !*v) return defaultVal;
-        return (strcmp(v, "1") == 0 || EqI(v, "true") || EqI(v, "yes"));
+        if (EqI(v, "1") || EqI(v, "true") || EqI(v, "yes") || EqI(v, "on"))  return true;
+        if (EqI(v, "0") || EqI(v, "false") || EqI(v, "no")  || EqI(v, "off")) return false;
+        return defaultVal;
     }
 
     // Read the entire file into a heap buffer. Caller frees with delete[].
@@ -236,23 +264,15 @@ namespace Config
         char val[64];
 
         if (ReadIniValue(content, "Log", "Value", val, sizeof(val))) {
-            g_logEnabled = ParseBool(val, true);
-            Logger::g_logWriteEnabled.store(g_logEnabled, std::memory_order_release);
+            g_logEnabled.store(ParseBool(val, true), std::memory_order_release);
+            Logger::g_logWriteEnabled.store(g_logEnabled.load(std::memory_order_acquire), std::memory_order_release);
         }
 
-        if (ReadIniValue(content, "PillarSuppress", "Value", val, sizeof(val)))
-            g_pillarSuppressEnabled = ParseBool(val, true);
-
         if (ReadIniValue(content, "PickupSuppress", "Value", val, sizeof(val)))
-            g_pickupSuppressEnabled = ParseBool(val, true);
+            g_pickupSuppressEnabled.store(ParseBool(val, true), std::memory_order_release);
 
-        if (ReadIniValue(content, "PillarFilter", "Value", val, sizeof(val)) ||
-            ReadIniValue(content, "PillarFilter", "Enabled", val, sizeof(val)))
-            g_pillarFilterEnabled = ParseBool(val, true);
-
-        LOG("Config", "Reload: PillarFilter=%d Log=%d PillarSuppress=%d PickupSuppress=%d",
-            (int)g_pillarFilterEnabled, (int)g_logEnabled,
-            (int)g_pillarSuppressEnabled, (int)g_pickupSuppressEnabled);
+        LOG("Config", "Reload: Log=%d PickupSuppress=%d",
+            (int)g_logEnabled.load(), (int)g_pickupSuppressEnabled.load());
 
         delete[] content;
     }
@@ -283,13 +303,61 @@ namespace Config
         }
     }
 
+    static DWORD WINAPI TickThreadProc(LPVOID)
+    {
+        LOG_MSG("Config", "tick thread started");
+        for (;;) {
+            DWORD r = WaitForSingleObject(s_tickStop, 500);
+            if (r == WAIT_OBJECT_0) return 0; // stop signaled
+
+            Tick();
+            Whitelist::Tick();
+        }
+    }
+
     void StartHotReload()
     {
         Reload();
+        Whitelist::Load();
+
+        // Seed each file's mtime so the first Tick() after startup doesn't
+        // fire a spurious "File change detected" reload — g_lastWrite/s_lastWrite
+        // start at 0 and would otherwise always compare unequal to the real
+        // mtime.
+        char path[MAX_PATH];
+        if (GetConfigPath(path, sizeof(path)) > 0) {
+            HANDLE h = CreateFileA(path, GENERIC_READ,
+                                   FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                   NULL, OPEN_EXISTING, 0, NULL);
+            if (h != INVALID_HANDLE_VALUE) {
+                FILETIME ft;
+                if (GetFileTime(h, NULL, NULL, &ft))
+                    g_lastWrite = ((ULONGLONG)ft.dwHighDateTime << 32) | ft.dwLowDateTime;
+                CloseHandle(h);
+            }
+        }
+        Whitelist::SeedMTime();
+
         LOG_MSG("Config", "Lazy hot-reload enabled");
+
+        // Drive Tick from a background thread so file edits are picked up
+        // even when no game events (pickups) are firing. The 1-second throttle
+        // inside Tick keeps the per-tick work minimal.
+        if (s_tickThread) return;
+        s_tickStop = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+        if (!s_tickStop) return;
+        s_tickThread = CreateThread(nullptr, 0, TickThreadProc,
+                                    nullptr, 0, nullptr);
     }
 
     void StopHotReload()
     {
+        if (!s_tickThread) return;
+        SetEvent(s_tickStop);
+        WaitForSingleObject(s_tickThread, 2000);
+        CloseHandle(s_tickThread);
+        s_tickThread = nullptr;
+        CloseHandle(s_tickStop);
+        s_tickStop = nullptr;
     }
 }

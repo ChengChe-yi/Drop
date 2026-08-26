@@ -198,6 +198,19 @@ namespace Whitelist
         return false;
     }
 
+    void SeedMTime()
+    {
+        const char* path = GetFilePath();
+        if (!path || !*path) return;
+        HANDLE h = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                               NULL, OPEN_EXISTING, 0, NULL);
+        if (h == INVALID_HANDLE_VALUE) return;
+        FILETIME ft;
+        if (GetFileTime(h, NULL, NULL, &ft))
+            s_lastWrite = ((ULONGLONG)ft.dwHighDateTime << 32) | ft.dwLowDateTime;
+        CloseHandle(h);
+    }
+
     void Tick()
     {
         ULONGLONG now = GetTickCount64();

@@ -5,6 +5,7 @@
 #include "Config.h"
 #include "Logger.h"
 #include "Whitelist.h"
+#include <atomic>
 #include <cstdint>
 #include <cstring>
 
@@ -77,31 +78,41 @@ static __int64 __fastcall PD_Handler(__int64 a1, __int64 a2)
     static thread_local int g_depth = 0;
     g_depth++;
 
+    // Hot-reload polling — also driven by the background timer thread, but
+    // we call it here too so that during gameplay (the common case) file
+    // edits are picked up within milliseconds rather than up to 500ms. The
+    // 1-second throttle inside Tick deduplicates the work.
     Config::Tick();
     Whitelist::Tick();
 
-    char iconUtf8[64] = {}, nameUtf8[64] = {};
+    // Cheap out when the master switch is off — every pickup in the game
+    // flows through this function, so skipping the whole body is the single
+    // biggest win when the user has disabled pickup suppression.
+    if (!a2 || !Config::g_pickupSuppressEnabled.load(std::memory_order_acquire)) {
+        g_depth--;
+        return CallOriginal(a1, a2);
+    }
+
+    char iconUtf8[64] = {};
+    char nameUtf8[64] = {};
     bool shouldBlock = false;
 
     __try {
-        if (a2 && Config::g_pillarFilterEnabled && Config::g_pickupSuppressEnabled) {
-            ReadStringUtf8SEH(*(__int64*)(a2 + 0x28), iconUtf8, 64);
+        // Only convert the icon (and only check the icon prefix). The name
+        // field is deferred — for the 99% of pickups that aren't
+        // `UI_ItemIcon_112`, this skips a WideCharToMultiByte call.
+        ReadStringUtf8SEH(*(__int64*)(a2 + 0x28), iconUtf8, 64);
+
+        if (iconUtf8[0] && strstr(iconUtf8, "UI_ItemIcon_112")) {
             ReadStringUtf8SEH(*(__int64*)(a2 + 0x18), nameUtf8, 64);
 
-            LOG("PDhook", "icon='%s' name='%s' (depth=%d)", iconUtf8, nameUtf8, g_depth);
-
-            if (iconUtf8[0] && strstr(iconUtf8, "UI_ItemIcon_112")) {
+            if (!Whitelist::IsPickupAllowed(nameUtf8))
                 shouldBlock = true;
-            }
-
-            if (shouldBlock && nameUtf8[0] && Whitelist::IsPickupAllowed(nameUtf8)) {
-                LOG("PDhook", "WHITELIST: '%s'", nameUtf8);
-                shouldBlock = false;
-            }
         }
     }
     __except (EXCEPTION_EXECUTE_HANDLER) {
-        LOG("PDhook", "EXCEPTION reading a2");
+        // Silent on SEH — verbose per-call logging in this hot path costs
+        // more than it's worth.
     }
 
     if (shouldBlock) {
@@ -118,7 +129,6 @@ static __int64 __fastcall PD_Handler(__int64 a1, __int64 a2)
 static bool DoInit()
 {
     if (!g_base)
-        // 主模块即注入目标，不依赖具体 exe 名
         g_base = (uint8_t*)GetModuleHandleW(nullptr);
     if (!g_base) return false;
 

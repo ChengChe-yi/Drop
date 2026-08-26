@@ -9,11 +9,7 @@ namespace Hooks
     bool Init()
     {
         LOG_MSG("Hooks", "Initializing hooks ...");
-
-        bool okPickup = PickupSuppress::Init();
-
-        LOG("Hooks", "pickup=%d", (int)okPickup);
-        return okPickup;
+        return PickupSuppress::Init();
     }
 
     void Uninit()
