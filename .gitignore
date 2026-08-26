@@ -27,9 +27,6 @@ ipch/
 MinHook/libMinHook.x64.lib
 MinHook/libMinHook.x86.lib
 
-# Config (user-specific)
-src/Config/Config.ini
-
 # UPX packer
 upx-5.2.0/
 
@@ -44,5 +41,4 @@ install.lua
 # Claude Code memory
 .claude/
 .reasonix/
-# Solution file 
-*.slnx
+
