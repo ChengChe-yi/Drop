@@ -219,15 +219,11 @@
     <ClInclude Include="src\Patterns\Patterns.h" />
     <ClInclude Include="src\Config\Config.h" />
     <ClInclude Include="src\Scanner\Scanner.h" />
-    <ClInclude Include="src\Core\Stealth.h" />
-    <ClInclude Include="src\Core\Int3Hook.h" />
     <ClInclude Include="src\PickupSuppress\PickupSuppress.h" />
     <ClInclude Include="src\Logger\Logger.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\dllmain.cpp" />
-    <ClCompile Include="src\Core\Stealth.cpp" />
-    <ClCompile Include="src\Core\Int3Hook.cpp" />
     <ClCompile Include="src\Hooks\Hooks.cpp" />
     <ClCompile Include="src\Config\Config.cpp" />
     <ClCompile Include="src\PickupSuppress\PickupSuppress.cpp" />

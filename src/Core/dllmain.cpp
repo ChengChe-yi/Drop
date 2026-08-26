@@ -2,7 +2,6 @@
 #include "Hooks.h"
 #include "Config.h"
 #include "Logger.h"
-#include "Stealth.h"
 #include "PickupSuppress.h"
 #include <atomic>
 
@@ -15,8 +14,6 @@ void RunDelayedInit()
     if (g_initDone.load(std::memory_order_acquire)) return;
     g_initDone.store(true, std::memory_order_release);
 
-    Stealth::HideFromPEB();
-
     LOG_MSG("Drop", "Drop Plugin Loaded");
 
     Config::StartHotReload();
@@ -24,8 +21,6 @@ void RunDelayedInit()
     Hooks::Init();
 
     LOG_MSG("Drop", "Hooks installed via RunDelayedInit");
-
-    Stealth::ErasePEHeader();
 }
 
 BOOL APIENTRY DllMain(HMODULE hModule,
@@ -37,7 +32,6 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     case DLL_PROCESS_ATTACH:
         Config::g_hModule = hModule;
         DisableThreadLibraryCalls(hModule);
-        Stealth::Init();
         InitLogFile(hModule);
         Hooks::Init();
         break;

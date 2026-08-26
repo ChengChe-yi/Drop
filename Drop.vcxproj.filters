@@ -36,12 +36,6 @@
     <ClInclude Include="src\Pch\pch.h">
       <Filter>Pch</Filter>
     </ClInclude>
-    <ClInclude Include="src\Core\Stealth.h">
-      <Filter>Core</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Core\Int3Hook.h">
-      <Filter>Core</Filter>
-    </ClInclude>
     <ClInclude Include="src\Config\Config.h">
       <Filter>Config</Filter>
     </ClInclude>
@@ -66,12 +60,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\dllmain.cpp">
-      <Filter>Core</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Core\Stealth.cpp">
-      <Filter>Core</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Core\Int3Hook.cpp">
       <Filter>Core</Filter>
     </ClCompile>
     <ClCompile Include="src\Pch\pch.cpp">
