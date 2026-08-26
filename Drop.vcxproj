@@ -93,7 +93,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ProjectDir)src\Pch;$(ProjectDir)src\Config;$(ProjectDir)src\Patterns;$(ProjectDir)src\Core;$(ProjectDir)src\Hooks;$(ProjectDir)src\PickupSuppress;$(ProjectDir)src\PillarSuppress;$(ProjectDir)src\SetActiveHook;$(ProjectDir)src\Logger;$(ProjectDir)src\Whitelist;$(ProjectDir)src\Scanner;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\Pch;$(ProjectDir)src\Config;$(ProjectDir)src\Patterns;$(ProjectDir)src\Core;$(ProjectDir)src\Hooks;$(ProjectDir)src\PickupSuppress;$(ProjectDir)src\PillarSuppress;$(ProjectDir)src\Logger;$(ProjectDir)src\Whitelist;$(ProjectDir)src\Scanner;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -117,7 +117,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ProjectDir)src\Pch;$(ProjectDir)src\Config;$(ProjectDir)src\Patterns;$(ProjectDir)src\Core;$(ProjectDir)src\Hooks;$(ProjectDir)src\PickupSuppress;$(ProjectDir)src\PillarSuppress;$(ProjectDir)src\SetActiveHook;$(ProjectDir)src\Logger;$(ProjectDir)src\Whitelist;$(ProjectDir)src\Scanner;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\Pch;$(ProjectDir)src\Config;$(ProjectDir)src\Patterns;$(ProjectDir)src\Core;$(ProjectDir)src\Hooks;$(ProjectDir)src\PickupSuppress;$(ProjectDir)src\PillarSuppress;$(ProjectDir)src\Logger;$(ProjectDir)src\Whitelist;$(ProjectDir)src\Scanner;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -139,7 +139,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ProjectDir)src\Pch;$(ProjectDir)src\Config;$(ProjectDir)src\Patterns;$(ProjectDir)src\Core;$(ProjectDir)src\Hooks;$(ProjectDir)src\PickupSuppress;$(ProjectDir)src\PillarSuppress;$(ProjectDir)src\SetActiveHook;$(ProjectDir)src\Logger;$(ProjectDir)src\Whitelist;$(ProjectDir)src\Scanner;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\Pch;$(ProjectDir)src\Config;$(ProjectDir)src\Patterns;$(ProjectDir)src\Core;$(ProjectDir)src\Hooks;$(ProjectDir)src\PickupSuppress;$(ProjectDir)src\PillarSuppress;$(ProjectDir)src\Logger;$(ProjectDir)src\Whitelist;$(ProjectDir)src\Scanner;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -166,7 +166,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ProjectDir)src\Pch;$(ProjectDir)src\Config;$(ProjectDir)src\Patterns;$(ProjectDir)src\Core;$(ProjectDir)src\Hooks;$(ProjectDir)src\PickupSuppress;$(ProjectDir)src\PillarSuppress;$(ProjectDir)src\SetActiveHook;$(ProjectDir)src\Logger;$(ProjectDir)src\Whitelist;$(ProjectDir)src\Scanner;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\Pch;$(ProjectDir)src\Config;$(ProjectDir)src\Patterns;$(ProjectDir)src\Core;$(ProjectDir)src\Hooks;$(ProjectDir)src\PickupSuppress;$(ProjectDir)src\PillarSuppress;$(ProjectDir)src\Logger;$(ProjectDir)src\Whitelist;$(ProjectDir)src\Scanner;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -196,7 +196,7 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(ProjectDir)src\Pch;$(ProjectDir)src\Config;$(ProjectDir)src\Patterns;$(ProjectDir)src\Core;$(ProjectDir)src\Hooks;$(ProjectDir)src\PickupSuppress;$(ProjectDir)src\PillarSuppress;$(ProjectDir)src\SetActiveHook;$(ProjectDir)src\Logger;$(ProjectDir)src\Whitelist;$(ProjectDir)src\Scanner;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)src\Pch;$(ProjectDir)src\Config;$(ProjectDir)src\Patterns;$(ProjectDir)src\Core;$(ProjectDir)src\Hooks;$(ProjectDir)src\PickupSuppress;$(ProjectDir)src\PillarSuppress;$(ProjectDir)src\Logger;$(ProjectDir)src\Whitelist;$(ProjectDir)src\Scanner;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -222,7 +222,6 @@
     <ClInclude Include="src\Core\Stealth.h" />
     <ClInclude Include="src\Core\Int3Hook.h" />
     <ClInclude Include="src\PickupSuppress\PickupSuppress.h" />
-    <ClInclude Include="src\SetActiveHook\SetActiveHook.h" />
     <ClInclude Include="src\Logger\Logger.h" />
   </ItemGroup>
   <ItemGroup>
@@ -232,7 +231,6 @@
     <ClCompile Include="src\Hooks\Hooks.cpp" />
     <ClCompile Include="src\Config\Config.cpp" />
     <ClCompile Include="src\PickupSuppress\PickupSuppress.cpp" />
-    <ClCompile Include="src\SetActiveHook\SetActiveHook.cpp" />
     <ClCompile Include="src\Scanner\Scanner.cpp" />
     <ClCompile Include="src\Pch\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

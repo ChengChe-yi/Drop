@@ -9,9 +9,8 @@ namespace Hooks
     {
         LOG_MSG("Hooks", "Initializing hooks (FF 25 JMP)...");
 
-        // Only the pickup hook is active right now; SetActiveHook and
-        // PillarSuppress are deliberately disabled (we just don't call
-        // their Init here). Their source files are left intact.
+        // Only the pickup hook is active right now; PillarSuppress is
+        // deliberately disabled (we just don't call its Init here).
         bool okPickup = PickupSuppress::Init();
 
         LOG("Hooks", "pickup=%d", (int)okPickup);
