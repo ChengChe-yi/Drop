@@ -1,4 +1,5 @@
-#include "framework.h"
+﻿#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #include "Scanner.h"
 #include <cstdint>
 #include <cstdlib>

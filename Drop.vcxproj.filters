@@ -27,9 +27,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Core\framework.h">
-      <Filter>Core</Filter>
-    </ClInclude>
     <ClInclude Include="src\Config\Config.h">
       <Filter>Config</Filter>
     </ClInclude>

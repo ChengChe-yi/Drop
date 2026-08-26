@@ -1,4 +1,5 @@
-#include "framework.h"
+﻿#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #include "Whitelist.h"
 #include "Config.h"
 #include "Logger.h"
@@ -167,6 +168,17 @@ namespace Whitelist
             return;
         }
         content[got] = 0;
+
+        // Skip a leading UTF-8 BOM (EF BB BF) if present, so that an editor-
+        // saved Whitelist.ini still matches its "[PickupSuppress]" header.
+        if (got >= 3 &&
+            (unsigned char)content[0] == 0xEF &&
+            (unsigned char)content[1] == 0xBB &&
+            (unsigned char)content[2] == 0xBF)
+        {
+            content += 3;
+            got -= 3;
+        }
 
         ParseSection(content, "PickupSuppress",
                      g_pickupWhitelist, kMaxEntries, &g_pickupCount);

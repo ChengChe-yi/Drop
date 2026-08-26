@@ -1,4 +1,5 @@
-﻿#include "framework.h"
+﻿#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #include "Hooks.h"
 #include "PickupSuppress.h"
 #include "Logger.h"
@@ -7,7 +8,7 @@ namespace Hooks
 {
     bool Init()
     {
-        LOG_MSG("Hooks", "Initializing hooks (FF 25 JMP)...");
+        LOG_MSG("Hooks", "Initializing hooks ...");
 
         bool okPickup = PickupSuppress::Init();
 

@@ -1,4 +1,5 @@
-#include "framework.h"
+﻿#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #include "Hooks.h"
 #include "Config.h"
 #include "Logger.h"

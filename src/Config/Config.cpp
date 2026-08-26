@@ -1,4 +1,5 @@
-#include "framework.h"
+﻿#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #include "Config.h"
 #include "Logger.h"
 #include <cstring>
@@ -193,7 +194,27 @@ namespace Config
             return nullptr;
         }
         buf[got] = 0;
-        if (outSize) *outSize = got;
+
+        // Strip a leading BOM if the file was saved as UTF-8 with BOM. We
+        // hand the caller a pointer past the BOM and a reduced byte count so
+        // downstream strstr/strchr keep matching "[section]" as-is.
+        size_t skip = 0;
+        if (got >= 3 &&
+            (unsigned char)buf[0] == 0xEF &&
+            (unsigned char)buf[1] == 0xBB &&
+            (unsigned char)buf[2] == 0xBF)
+        {
+            skip = 3;
+        }
+
+        char* content = buf + skip;
+        size_t contentLen = got - skip;
+
+        // Shift the remaining bytes to the start of the buffer so delete[]
+        // still frees the same allocation as content.
+        memmove(buf, content, contentLen);
+        buf[contentLen] = 0;
+        if (outSize) *outSize = contentLen;
         return buf;
     }
 
