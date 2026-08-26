@@ -25,9 +25,6 @@
     <Filter Include="Logger">
       <UniqueIdentifier>{1A2B3C4D-5E6F-4A7B-8C9D-0E1F2A3B4C5D}</UniqueIdentifier>
     </Filter>
-    <Filter Include="XorStr">
-      <UniqueIdentifier>{2B3C4D5E-6F7A-4B8C-9D0E-1F2A3B4C5D6E}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Scanner">
       <UniqueIdentifier>{1A2B3C4D-5E6F-4A7B-8C9D-0E1F2A3B4C5D}</UniqueIdentifier>
     </Filter>
@@ -65,9 +62,6 @@
     </ClInclude>
     <ClInclude Include="src\Logger\Logger.h">
       <Filter>Logger</Filter>
-    </ClInclude>
-    <ClInclude Include="src\XorStr\XorStr.h">
-      <Filter>XorStr</Filter>
     </ClInclude>
     <ClInclude Include="src\Scanner\Scanner.h">
       <Filter>Scanner</Filter>

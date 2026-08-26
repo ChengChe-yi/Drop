@@ -1,6 +1,5 @@
 ﻿#include "pch.h"
 #include "Stealth.h"
-#include "XorStr.h"
 #include "Config.h"
 #include "Logger.h"
 #include <cstring>
@@ -120,8 +119,8 @@ static void ResolveOne(const char* names[], FARPROC* targets[], int count, HMODU
 
 void ResolveApis()
 {
-    HMODULE kernel32 = FindModule(XWSTR(L"kernel32.dll"));
-    HMODULE ntdll = FindModule(XWSTR(L"ntdll.dll"));
+    HMODULE kernel32 = FindModule(L"kernel32.dll");
+    HMODULE ntdll = FindModule(L"ntdll.dll");
 
     static const char* k32_names[] = {
         "LoadLibraryW", "GetProcAddress", "VirtualAlloc", "VirtualProtect",

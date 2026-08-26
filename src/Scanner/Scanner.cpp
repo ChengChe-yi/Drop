@@ -1,6 +1,5 @@
 ﻿#include "pch.h"
 #include "Scanner.h"
-#include "XorStr.h"
 #include <vector>
 #include <psapi.h>
 

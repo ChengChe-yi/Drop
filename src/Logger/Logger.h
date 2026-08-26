@@ -4,8 +4,6 @@
 #include <cstring>
 #include <atomic>
 
-#include "XorStr.h"
-
 inline std::atomic<bool> g_logWriteEnabled{true};
 
 inline wchar_t g_logPath[MAX_PATH] = {};
@@ -55,7 +53,7 @@ static inline void CloseLog() {}
         GetLocalTime(&_st);                                                         \
         char _fmt[1024];                                                            \
         sprintf_s(_fmt, sizeof(_fmt), "[%%02d:%%02d:%%02d.%%03d][%s] %s\n",         \
-            XSTR(tag), XSTR(fmt));                                                   \
+            tag, fmt);                                                              \
         char _buf[1024];                                                            \
         int _len = sprintf_s(_buf, sizeof(_buf), _fmt,                              \
             _st.wHour, _st.wMinute, _st.wSecond, _st.wMilliseconds,                 \
@@ -69,7 +67,7 @@ static inline void CloseLog() {}
         GetLocalTime(&_st);                                                         \
         char _fmt[1024];                                                            \
         sprintf_s(_fmt, sizeof(_fmt), "[%%02d:%%02d:%%02d.%%03d][%s] %s\n",         \
-            XSTR(tag), XSTR(msg));                                                   \
+            tag, msg);                                                              \
         char _buf[1024];                                                            \
         int _len = sprintf_s(_buf, sizeof(_buf), _fmt,                              \
             _st.wHour, _st.wMinute, _st.wSecond, _st.wMilliseconds);                \

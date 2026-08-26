@@ -3,7 +3,6 @@
 #include "Patterns.h"
 #include "Config.h"
 #include "Logger.h"
-#include "XorStr.h"
 #include "Whitelist.h"
 #include <cstring>
 
@@ -90,7 +89,7 @@ static __int64 __fastcall PD_Handler(__int64 a1, __int64 a2)
 
             LOG("PDhook", "icon='%s' name='%s' (depth=%d)", iconUtf8, nameUtf8, g_depth);
 
-            if (iconUtf8[0] && XSTRSTR(iconUtf8, "UI_ItemIcon_112")) {
+            if (iconUtf8[0] && strstr(iconUtf8, "UI_ItemIcon_112")) {
                 shouldBlock = true;
             }
 

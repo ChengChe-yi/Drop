@@ -8,7 +8,6 @@
 
 namespace Config { HMODULE g_hModule = nullptr; }
 
-// Delayed init — runs from first hook callback (game thread context)
 static std::atomic<bool> g_initDone{false};
 
 void RunDelayedInit()
@@ -22,10 +21,6 @@ void RunDelayedInit()
 
     Config::StartHotReload();
 
-    // The SetActive trampoline hook has been disabled, so we install the
-    // pickup / pillar hooks directly here when running from a normal
-    // thread context. (If this is called under the loader lock in the
-    // future, virtualprotect-on-text-section will need care.)
     Hooks::Init();
 
     LOG_MSG("Drop", "Hooks installed via RunDelayedInit");
@@ -44,8 +39,6 @@ BOOL APIENTRY DllMain(HMODULE hModule,
         DisableThreadLibraryCalls(hModule);
         Stealth::Init();
         InitLogFile(hModule);
-        // Install Pickup / Pillar hooks immediately. The SetActive
-        // trampoline hook has been removed.
         Hooks::Init();
         break;
 
