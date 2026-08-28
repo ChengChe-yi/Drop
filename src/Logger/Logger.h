@@ -4,34 +4,26 @@
 #include <windows.h>
 #include <atomic>
 
-// ----------------------------------------------------------------------------
-// Logger — thin file logger used by LOG() / LOG_MSG() macros.
-//
-// All state lives in Logger.cpp (single TU), so we use `extern` instead of
-// C++17 `inline` variables. This avoids the ODR-with-mutable-state trap that
-// existed in the previous header-only version where `g_logWriteEnabled` and
-// `g_logLock` were `inline` and could be written from any TU without a clear
-// owner.
-// ----------------------------------------------------------------------------
+// 轻量文件日志：写入 DLL 同目录 Drop.log（UTF-8，自动补 BOM）。
+// 状态全部收在 Logger.cpp 单一编译单元，避免 inline 变量的 ODR 问题。
 
 namespace Logger
 {
-    // Master switch. Mirrors Config.ini → [Log] Value after Reload().
+    // 总开关，Reload() 后镜像 Config.ini → [Log] Value。
     extern std::atomic<bool> g_logWriteEnabled;
 
-    // Initialize the log file path. Safe to call multiple times — only the
-    // first call has any effect.
+    // 初始化日志路径；可重复调用，仅首次生效。
     void InitLogFile(HMODULE hModule);
 
-    // Append a single line to Drop.log. Caller already formats the line.
+    // 追加一行（调用方已完成格式化）。
     void WriteLog(const char* text);
 
-    // Reserved for future buffer flushing. Currently a no-op.
+    // 预留，当前为空操作。
     void CloseLog();
 }
 
-// Macro: LOG(tag, fmt, ...) — formatted printf-style log line.
-// Macro: LOG_MSG(tag, msg)   — fixed-string log line.
+// LOG(tag, fmt, ...) —— printf 风格，自动加 [时:分:秒.毫秒][tag] 前缀。
+// LOG_MSG(tag, msg)  —— 固定字符串版本。
 #define LOG(tag, fmt, ...)                                                          \
     do {                                                                            \
         SYSTEMTIME _st;                                                             \

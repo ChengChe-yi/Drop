@@ -9,11 +9,40 @@
 #include <cstdint>
 #include <cstring>
 
+// ============================================================================
+// Trampoline 常驻 hook —— 初始化时写一次游戏内存，热路径不再触碰。
+//
+//   target:  [16 字节 prologue][函数其余部分...]
+//            被一次性覆盖为: FF 25 xx | PD_Handler（14 字节绝对 jmp）+ 90 90
+//            NOP 填充让 patch 区以指令边界结束（sub rsp,68h 保持完整）
+//
+//   trampoline: [16 字节 prologue 原样拷贝] + FF 25 xx | target+16
+//
+//   prologue @ RVA 0xF4944B0（IDA 已验证）:
+//     41 57 41 56 41 55 41 54   push r15 / r14 / r13 / r12
+//     56 57 55 53               push rsi / rdi / rbp / rbx
+//     48 83 EC 68               sub rsp, 68h    ← 止于 +0x10
+//   拷贝区间全为位置无关指令（无 RIP 相对寻址），原样拷贝零重定位；
+//   trampoline 重执行完整 prologue 后跳回 target+16，栈状态与原函数一致。
+// ============================================================================
+
+static constexpr size_t kPatchLen = 16;
+
+// 版本守卫基准：字节不匹配（游戏已更新）则拒绝 hook。
+static const uint8_t kExpectedPrologue[kPatchLen] = {
+    0x41, 0x57,         // push r15
+    0x41, 0x56,         // push r14
+    0x41, 0x55,         // push r13
+    0x41, 0x54,         // push r12
+    0x56, 0x57, 0x55, 0x53, // push rsi, rdi, rbp, rbx
+    0x48, 0x83, 0xEC, 0x68  // sub rsp, 68h
+};
+
 static uint8_t* g_base = nullptr;
 static uint8_t* g_target = nullptr;
-static uint8_t  g_origBytes[14] = {};
-static uint8_t  g_jmpBytes[14] = {};
-static bool     g_hooked = false;
+static uint8_t  g_origBytes[kPatchLen] = {};
+static uint8_t* g_trampoline = nullptr;
+static std::atomic<bool> g_hooked{ false };
 
 typedef __int64(__fastcall* tOriginal)(__int64, __int64);
 
@@ -30,6 +59,7 @@ struct Il2CppString {
     wchar_t chars[1];
 };
 
+// SEH 保护下的 IL2CppString → UTF-8 读取（指针有效性未知，随时可能异常）。
 static bool ReadStringUtf8SEH(__int64 p, char* out, int outSize)
 {
     if (!p || (size_t)p < 0x10000) return false;
@@ -59,48 +89,23 @@ static void BuildJmpBytes(uint8_t* dest, void* jmpTarget)
 
 static __int64 CallOriginal(__int64 a1, __int64 a2)
 {
-    DWORD old = 0;
-    VirtualProtect(g_target, 14, PAGE_EXECUTE_READWRITE, &old);
-    memcpy(g_target, g_origBytes, 14);
-    VirtualProtect(g_target, 14, old, &old);
-
-    auto result = ((tOriginal)g_target)(a1, a2);
-
-    VirtualProtect(g_target, 14, PAGE_EXECUTE_READWRITE, &old);
-    memcpy(g_target, g_jmpBytes, 14);
-    VirtualProtect(g_target, 14, old, &old);
-
-    return result;
+    return ((tOriginal)g_trampoline)(a1, a2);
 }
 
 static __int64 __fastcall PD_Handler(__int64 a1, __int64 a2)
 {
-    static thread_local int g_depth = 0;
-    g_depth++;
+    // 热路径只做内存操作；文件 IO 全部归 watcher 线程。
 
-    // Hot-reload polling — also driven by the background timer thread, but
-    // we call it here too so that during gameplay (the common case) file
-    // edits are picked up within milliseconds rather than up to 500ms. The
-    // 1-second throttle inside Tick deduplicates the work.
-    Config::Tick();
-    Whitelist::Tick();
-
-    // Cheap out when the master switch is off — every pickup in the game
-    // flows through this function, so skipping the whole body is the single
-    // biggest win when the user has disabled pickup suppression.
-    if (!a2 || !Config::g_pickupSuppressEnabled.load(std::memory_order_acquire)) {
-        g_depth--;
+    // 总开关关闭时直接放行——每个拾取都会经过这里，早退是最大收益。
+    if (!a2 || !Config::g_pickupSuppressEnabled.load(std::memory_order_acquire))
         return CallOriginal(a1, a2);
-    }
 
     char iconUtf8[64] = {};
     char nameUtf8[64] = {};
     bool shouldBlock = false;
 
     __try {
-        // Only convert the icon (and only check the icon prefix). The name
-        // field is deferred — for the 99% of pickups that aren't
-        // `UI_ItemIcon_112`, this skips a WideCharToMultiByte call.
+        // 先只转 icon；非目标图标（绝大多数拾取）直接省掉 name 转换。
         ReadStringUtf8SEH(*(__int64*)(a2 + 0x28), iconUtf8, 64);
 
         if (iconUtf8[0] && strstr(iconUtf8, "UI_ItemIcon_112")) {
@@ -111,19 +116,15 @@ static __int64 __fastcall PD_Handler(__int64 a1, __int64 a2)
         }
     }
     __except (EXCEPTION_EXECUTE_HANDLER) {
-        // Silent on SEH — verbose per-call logging in this hot path costs
-        // more than it's worth.
+        // 热路径异常保持静默。
     }
 
     if (shouldBlock) {
         LOG("PDhook", "BLOCK icon='%s' name='%s'", iconUtf8, nameUtf8);
-        g_depth--;
         return 0;
     }
 
-    auto result = CallOriginal(a1, a2);
-    g_depth--;
-    return result;
+    return CallOriginal(a1, a2);
 }
 
 static bool DoInit()
@@ -134,21 +135,44 @@ static bool DoInit()
 
     g_target = g_base + Offsets::RVA::PickupDataAdd;
 
-    memcpy(g_origBytes, g_target, 14);
+    memcpy(g_origBytes, g_target, kPatchLen);
+    if (memcmp(g_origBytes, kExpectedPrologue, kPatchLen) != 0) {
+        LOG("PDhook", "prologue mismatch at %llX — game updated? hook refused",
+            (uint64_t)g_target);
+        return false;
+    }
 
-    BuildJmpBytes(g_jmpBytes, PD_Handler);
+    // 1) 建 trampoline：RW 写入后翻 RX（W^X）。
+    g_trampoline = (uint8_t*)VirtualAlloc(nullptr, kPatchLen + 14,
+                                          MEM_COMMIT | MEM_RESERVE,
+                                          PAGE_READWRITE);
+    if (!g_trampoline) return false;
 
-    LOG("PDhook", "target entry = %llX, orig = %02X %02X %02X %02X...",
-        (uint64_t)g_target,
-        g_origBytes[0], g_origBytes[1], g_origBytes[2], g_origBytes[3]);
+    memcpy(g_trampoline, g_origBytes, kPatchLen);
+    BuildJmpBytes(g_trampoline + kPatchLen, g_target + kPatchLen);
 
     DWORD old = 0;
-    VirtualProtect(g_target, 14, PAGE_EXECUTE_READWRITE, &old);
-    memcpy(g_target, g_jmpBytes, 14);
-    VirtualProtect(g_target, 14, old, &old);
+    if (!VirtualProtect(g_trampoline, kPatchLen + 14, PAGE_EXECUTE_READ, &old)) {
+        VirtualFree(g_trampoline, 0, MEM_RELEASE);
+        g_trampoline = nullptr;
+        return false;
+    }
 
-    g_hooked = true;
-    LOG_MSG("PDhook", "hook installed OK");
+    // 2) 一次性 patch target：绝对 jmp + 2 NOP 补齐指令边界。
+    uint8_t patch[kPatchLen];
+    BuildJmpBytes(patch, PD_Handler);
+    patch[14] = 0x90;
+    patch[15] = 0x90;
+
+    if (!VirtualProtect(g_target, kPatchLen, PAGE_EXECUTE_READWRITE, &old))
+        return false;
+    memcpy(g_target, patch, kPatchLen);
+    VirtualProtect(g_target, kPatchLen, old, &old);
+
+    g_hooked.store(true, std::memory_order_release);
+
+    LOG("PDhook", "target=%llX trampoline=%llX",
+        (uint64_t)g_target, (uint64_t)g_trampoline);
     return true;
 }
 
@@ -161,14 +185,25 @@ bool PickupSuppress::Init()
     }
 }
 
+// 仅动态卸载时由 worker 调用一次；热路径永不触及。
 void PickupSuppress::Uninit()
 {
-    if (g_hooked && g_target) {
+    if (!g_hooked.exchange(false))
+        return;
+
+    if (g_target) {
         DWORD old = 0;
-        VirtualProtect(g_target, 14, PAGE_EXECUTE_READWRITE, &old);
-        memcpy(g_target, g_origBytes, 14);
-        VirtualProtect(g_target, 14, old, &old);
-        g_hooked = false;
-        LOG_MSG("PDhook", "Uninit OK (bytes restored)");
+        if (VirtualProtect(g_target, kPatchLen, PAGE_EXECUTE_READWRITE, &old)) {
+            memcpy(g_target, g_origBytes, kPatchLen);
+            VirtualProtect(g_target, kPatchLen, old, &old);
+        }
+        LOG_MSG("PDhook", "Uninit OK (prologue restored)");
+    }
+
+    if (g_trampoline) {
+        DWORD old = 0;
+        VirtualProtect(g_trampoline, kPatchLen + 14, PAGE_READWRITE, &old);
+        VirtualFree(g_trampoline, 0, MEM_RELEASE);
+        g_trampoline = nullptr;
     }
 }

@@ -27,11 +27,9 @@ namespace Scanner
         return size;
     }
 
-    // Pattern element: byte value + valid flag (false for '?' wildcard).
     static constexpr size_t kMaxPatternBytes = 64;
 
-    // Parse a hex pattern like "48 8B 05 ?? ?? ?? 7F" into patBytes/patMask.
-    // Returns the number of bytes parsed, or 0 on failure.
+    // 解析 "48 8B 05 ?? ?? ?? 7F" 形式的特征串；返回字节数，失败返回 0。
     static size_t ParsePattern(const char* pattern,
                                uint8_t* patBytes, uint8_t* patMask, size_t maxBytes)
     {
@@ -107,6 +105,7 @@ namespace Scanner
         return ScanRaw((const uint8_t*)start, size, patBytes, patMask, patternLen);
     }
 
+    // 解析 rip 相对寻址：目标 = 指令地址 + 偏移字段位置 + rel32。
     uintptr_t ResolveRelative(uintptr_t instruction, int offset, int instrSize)
     {
         if (!instruction) return 0;

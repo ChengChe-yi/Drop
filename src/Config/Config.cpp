@@ -1,77 +1,71 @@
 ﻿#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include "Config.h"
+#include "Watcher.h"
 #include "Logger.h"
 #include "Whitelist.h"
 #include <cstring>
 
 namespace Config
 {
-    // MSVC linker intrinsic — the address of this symbol is the DLL's
-    // HMODULE. We use it to anchor Config.ini next to *this* DLL instead of
-    // the host EXE. Declared at file scope so the `extern "C"` is valid.
+    // __ImageBase 的地址即本 DLL 的 HMODULE，用于把配置锚定在 DLL 侧而非宿主 EXE。
     extern "C" IMAGE_DOS_HEADER __ImageBase;
 
     std::atomic<bool> g_logEnabled{true};
     std::atomic<bool> g_pickupSuppressEnabled{true};
 
-    static ULONGLONG g_lastCheck = 0;
-    static ULONGLONG g_lastWrite = 0;
-    static char      g_cachedPath[MAX_PATH];
-    static bool      g_cachedPathReady = false;
+    static char      g_cachedDir[MAX_PATH];
+    static bool      g_cachedDirReady = false;
 
-    static HANDLE s_tickThread = nullptr;
-    static HANDLE s_tickStop   = nullptr;
-
-    size_t GetConfigPath(char* buf, size_t bufChars)
+    size_t GetModuleDir(char* buf, size_t bufChars)
     {
         if (!buf || bufChars == 0) return 0;
         buf[0] = 0;
 
-        // Cache: the DLL path never changes for a given process, so we
-        // compute the full Config.ini path once and reuse it for every Tick.
-        if (g_cachedPathReady) {
-            size_t len = strlen(g_cachedPath);
+        if (g_cachedDirReady) {
+            size_t len = strlen(g_cachedDir);
             if (len + 1 > bufChars) return 0;
-            memcpy(buf, g_cachedPath, len + 1);
+            memcpy(buf, g_cachedDir, len + 1);
             return len;
         }
 
-        // Anchor Config.ini next to *this* DLL, not the host EXE. The
-        // `&__ImageBase` trick gives us our own module handle without any
-        // external state plumbing.
         HMODULE hMod = reinterpret_cast<HMODULE>(&__ImageBase);
-
         char path[MAX_PATH];
         DWORD n = GetModuleFileNameA(hMod, path, MAX_PATH);
         if (n == 0 || n >= MAX_PATH) return 0;
 
-        // Strip to directory portion. path is null-terminated.
+        // 截到最后一个路径分隔符（保留尾部反斜杠）。
         char* lastSlash = nullptr;
         for (char* p = path; *p; ++p)
             if (*p == '\\' || *p == '/') lastSlash = p;
-        if (lastSlash)
-            lastSlash[1] = 0;
-        else
-            path[0] = 0;
+        if (!lastSlash) return 0;
 
-        // Append "Config.ini".
-        size_t dirLen = strlen(path);
+        size_t dirLen = (size_t)(lastSlash - path) + 1;
+        if (dirLen + 1 > sizeof(g_cachedDir)) return 0;
+        memcpy(g_cachedDir, path, dirLen);
+        g_cachedDir[dirLen] = 0;
+        g_cachedDirReady = true;
+
+        if (dirLen + 1 > bufChars) return 0;
+        memcpy(buf, g_cachedDir, dirLen + 1);
+        return dirLen;
+    }
+
+    size_t GetConfigPath(char* buf, size_t bufChars)
+    {
+        char dir[MAX_PATH];
+        size_t dirLen = GetModuleDir(dir, sizeof(dir));
+        if (dirLen == 0) return 0;
+
         const char* suffix = "Config.ini";
         size_t sufLen = strlen(suffix);
-        if (dirLen + sufLen + 1 > sizeof(g_cachedPath)) return 0;
-        memcpy(g_cachedPath, path, dirLen);
-        memcpy(g_cachedPath + dirLen, suffix, sufLen + 1); // include null terminator
-        g_cachedPathReady = true;
-
         if (dirLen + sufLen + 1 > bufChars) return 0;
-        memcpy(buf, g_cachedPath, dirLen + sufLen + 1);
+        memcpy(buf, dir, dirLen);
+        memcpy(buf + dirLen, suffix, sufLen + 1);
         return dirLen + sufLen;
     }
 
-    // Locate the line value for `key` inside the `[section]` block of `content`.
-    // On hit, copies up to `bufChars - 1` bytes of the value (trimmed) into `buf`
-    // and returns true. Returns false when the key/section is missing.
+    // 在 content 的 [section] 块内查找 key 的值（去空白、截断行内 ;/# 注释）。
     static bool ReadIniValue(const char* content,
                              const char* section,
                              const char* key,
@@ -81,7 +75,6 @@ namespace Config
         if (!content || !section || !key || !buf || bufChars == 0) return false;
         buf[0] = 0;
 
-        // Build "[section]" header.
         char header[128];
         size_t secLen = strlen(section);
         if (secLen + 2 >= sizeof(header)) return false;
@@ -93,7 +86,7 @@ namespace Config
         const char* p = strstr(content, header);
         if (!p) return false;
 
-        // Find end of this section (start of next "[" header, or EOF).
+        // 找到 section 结束位置（下一个 "[" 行头或 EOF）。
         const char* sectionStart = p;
         const char* searchPos = p + strlen(header);
         const char* sectionEnd = content + strlen(content);
@@ -110,27 +103,22 @@ namespace Config
             searchPos = nl + 1;
         }
 
-        // Walk lines inside the section.
         const char* pos = sectionStart + strlen(header);
         size_t keyLen = strlen(key);
         while (pos < sectionEnd) {
-            // Skip leading newlines/whitespace.
             while (pos < sectionEnd && (*pos == '\r' || *pos == '\n'))
                 ++pos;
             if (pos >= sectionEnd) break;
 
-            // Find end of this line.
             const char* lineEnd = pos;
             while (lineEnd < sectionEnd && *lineEnd != '\r' && *lineEnd != '\n')
                 ++lineEnd;
 
-            // Skip pure comment lines.
             if (*pos == ';' || *pos == '#') {
                 pos = lineEnd + 1;
                 continue;
             }
 
-            // Look for '='.
             const char* eq = nullptr;
             for (const char* q = pos; q < lineEnd; ++q)
                 if (*q == '=') { eq = q; break; }
@@ -139,7 +127,6 @@ namespace Config
                 continue;
             }
 
-            // Trim whitespace on key.
             const char* kBegin = pos;
             const char* kEnd = eq;
             while (kBegin < kEnd && (*kBegin == ' ' || *kBegin == '\t')) ++kBegin;
@@ -155,12 +142,10 @@ namespace Config
                 continue;
             }
 
-            // Trim value, strip an inline `;` or `#` comment, and copy out.
             const char* vBegin = eq + 1;
             const char* vEnd = lineEnd;
             while (vBegin < vEnd && (*vBegin == ' ' || *vBegin == '\t')) ++vBegin;
             while (vEnd > vBegin && (*(vEnd - 1) == ' ' || *(vEnd - 1) == '\t')) --vEnd;
-            // Truncate at the first `;` or `#` so `Value = 0// note` parses as `0`.
             for (const char* c = vBegin; c < vEnd; ++c) {
                 if (*c == ';' || *c == '#') { vEnd = c; break; }
             }
@@ -175,8 +160,7 @@ namespace Config
         return false;
     }
 
-    // ASCII-only case-insensitive equality. Avoids pulling <string.h> macros
-    // (_stricmp) that vary between CRT versions.
+    // ASCII 范围内的不区分大小写比较，避免依赖 CRT 的 _stricmp。
     static bool EqI(const char* a, const char* b)
     {
         while (*a && *b) {
@@ -198,8 +182,7 @@ namespace Config
         return defaultVal;
     }
 
-    // Read the entire file into a heap buffer. Caller frees with delete[].
-    // Returns nullptr on open failure.
+    // 整读文件到堆缓冲，调用方 delete[] 释放；失败返回 nullptr。
     static char* ReadFileToBuffer(const char* path, size_t* outSize)
     {
         if (outSize) *outSize = 0;
@@ -223,9 +206,8 @@ namespace Config
         }
         buf[got] = 0;
 
-        // Strip a leading BOM if the file was saved as UTF-8 with BOM. We
-        // hand the caller a pointer past the BOM and a reduced byte count so
-        // downstream strstr/strchr keep matching "[section]" as-is.
+        // 跳过 UTF-8 BOM，保证 strstr 能匹配 "[section]"；前移后 memmove 归位，
+        // delete[] 仍对准原始分配。
         size_t skip = 0;
         if (got >= 3 &&
             (unsigned char)buf[0] == 0xEF &&
@@ -238,14 +220,13 @@ namespace Config
         char* content = buf + skip;
         size_t contentLen = got - skip;
 
-        // Shift the remaining bytes to the start of the buffer so delete[]
-        // still frees the same allocation as content.
         memmove(buf, content, contentLen);
         buf[contentLen] = 0;
         if (outSize) *outSize = contentLen;
         return buf;
     }
 
+    // 在 watcher 线程执行：纯读文件 + 原子写，无锁、不触碰 loader。
     void Reload()
     {
         char path[MAX_PATH];
@@ -277,87 +258,26 @@ namespace Config
         delete[] content;
     }
 
-    void Tick()
-    {
-        ULONGLONG now = GetTickCount64();
-        if (now - g_lastCheck < 1000)
-            return;
-        g_lastCheck = now;
-
-        char path[MAX_PATH];
-        if (GetConfigPath(path, sizeof(path)) == 0) return;
-
-        HANDLE h = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
-                               NULL, OPEN_EXISTING, 0, NULL);
-        if (h != INVALID_HANDLE_VALUE) {
-            FILETIME ft;
-            if (GetFileTime(h, NULL, NULL, &ft)) {
-                ULONGLONG wt = ((ULONGLONG)ft.dwHighDateTime << 32) | ft.dwLowDateTime;
-                if (wt != g_lastWrite) {
-                    g_lastWrite = wt;
-                    LOG_MSG("Config", "File change detected, reloading...");
-                    Reload();
-                }
-            }
-            CloseHandle(h);
-        }
-    }
-
-    static DWORD WINAPI TickThreadProc(LPVOID)
-    {
-        LOG_MSG("Config", "tick thread started");
-        for (;;) {
-            DWORD r = WaitForSingleObject(s_tickStop, 500);
-            if (r == WAIT_OBJECT_0) return 0; // stop signaled
-
-            Tick();
-            Whitelist::Tick();
-        }
-    }
-
     void StartHotReload()
     {
+        // 初始加载在 worker 线程完成；watcher 随后播种 mtime，首次检查不会误触发。
         Reload();
         Whitelist::Load();
 
-        // Seed each file's mtime so the first Tick() after startup doesn't
-        // fire a spurious "File change detected" reload — g_lastWrite/s_lastWrite
-        // start at 0 and would otherwise always compare unequal to the real
-        // mtime.
-        char path[MAX_PATH];
-        if (GetConfigPath(path, sizeof(path)) > 0) {
-            HANDLE h = CreateFileA(path, GENERIC_READ,
-                                   FILE_SHARE_READ | FILE_SHARE_WRITE,
-                                   NULL, OPEN_EXISTING, 0, NULL);
-            if (h != INVALID_HANDLE_VALUE) {
-                FILETIME ft;
-                if (GetFileTime(h, NULL, NULL, &ft))
-                    g_lastWrite = ((ULONGLONG)ft.dwHighDateTime << 32) | ft.dwLowDateTime;
-                CloseHandle(h);
-            }
+        char dir[MAX_PATH];
+        if (GetModuleDir(dir, sizeof(dir)) == 0) {
+            LOG_MSG("Config", "Cannot resolve module dir, hot reload disabled");
+            return;
         }
-        Whitelist::SeedMTime();
 
-        LOG_MSG("Config", "Lazy hot-reload enabled");
-
-        // Drive Tick from a background thread so file edits are picked up
-        // even when no game events (pickups) are firing. The 1-second throttle
-        // inside Tick keeps the per-tick work minimal.
-        if (s_tickThread) return;
-        s_tickStop = CreateEventW(nullptr, TRUE, FALSE, nullptr);
-        if (!s_tickStop) return;
-        s_tickThread = CreateThread(nullptr, 0, TickThreadProc,
-                                    nullptr, 0, nullptr);
+        if (Watcher::Start(dir, &Reload, &Whitelist::Load))
+            LOG_MSG("Config", "Hot reload enabled (event-driven, 200ms debounce)");
+        else
+            LOG_MSG("Config", "Watcher failed to start, hot reload disabled");
     }
 
     void StopHotReload()
     {
-        if (!s_tickThread) return;
-        SetEvent(s_tickStop);
-        WaitForSingleObject(s_tickThread, 2000);
-        CloseHandle(s_tickThread);
-        s_tickThread = nullptr;
-        CloseHandle(s_tickStop);
-        s_tickStop = nullptr;
+        Watcher::Stop();
     }
 }

@@ -20,10 +20,13 @@
       <UniqueIdentifier>{1A2B3C4D-5E6F-4A7B-8C9D-0E1F2A3B4C5D}</UniqueIdentifier>
     </Filter>
     <Filter Include="Scanner">
-      <UniqueIdentifier>{1A2B3C4D-5E6F-4A7B-8C9D-0E1F2A3B4C5D}</UniqueIdentifier>
+      <UniqueIdentifier>{3E5F6A7B-8C9D-4E0F-A1B2-C3D4E5F6A7B8}</UniqueIdentifier>
     </Filter>
     <Filter Include="Whitelist">
       <UniqueIdentifier>{7C8D9E0F-1A2B-3C4D-5E6F-7A8B9C0D1E2F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Watcher">
+      <UniqueIdentifier>{8D9E0F1A-2B3C-4D5E-8F7A-9B0C1D2E3F4A}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -48,6 +51,9 @@
     <ClInclude Include="src\Whitelist\Whitelist.h">
       <Filter>Whitelist</Filter>
     </ClInclude>
+    <ClInclude Include="src\Watcher\Watcher.h">
+      <Filter>Watcher</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\dllmain.cpp">
@@ -70,6 +76,9 @@
     </ClCompile>
     <ClCompile Include="src\Whitelist\Whitelist.cpp">
       <Filter>Whitelist</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Watcher\Watcher.cpp">
+      <Filter>Watcher</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include <cstdint>
 
-// === Signature library (IDA-verified, unique per function) ==================
+// 签名库（IDA 已验证，各函数唯一）：
 //
 //  B81160:       56 57 55 53 48 83 EC 28 4C 89 CF 4C 89 C6 89 D5
 //                48 89 CB 80 3D ?? ?? ?? ?? 00 0F 85 ?? ?? ?? ??
@@ -14,14 +14,13 @@
 //  GetName:      40 53 48 81 EC ?? ?? ?? ?? 48 8B D9 48 85 C9
 //                0F 84 ?? ?? ?? ?? E8 ?? ?? ?? ??
 //                48 85 C0 0F 84
-// ============================================================================
 
 namespace Offsets
 {
     namespace RVA
     {
-
-        inline constexpr uintptr_t PickupDataAdd    = 0xF4944B0;  
+        // 硬编码 RVA，游戏更新后需同步；可用 Scanner 签名定位替代。
+        inline constexpr uintptr_t PickupDataAdd    = 0xF4944B0;
 
     }
 }
