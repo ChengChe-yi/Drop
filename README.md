@@ -47,7 +47,7 @@
 [PickupSuppress]
 Name  = 拾取提示框屏蔽
 Type  = bool
-Value = 1   ; 1 = 开启,0 = 关闭
+Value = 1   ; 1 = 开启,0 = 关闭,默认屏蔽怪物掉落物
 
 [Log]
 Name  = 日志开关
