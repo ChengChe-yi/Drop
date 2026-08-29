@@ -96,8 +96,14 @@ static __int64 __fastcall PD_Handler(__int64 a1, __int64 a2)
 {
     // 热路径只做内存操作；文件 IO 全部归 watcher 线程。
 
-    // 总开关关闭时直接放行——每个拾取都会经过这里，早退是最大收益。
-    if (!a2 || !Config::g_pickupSuppressEnabled.load(std::memory_order_acquire))
+    if (!a2)
+        return CallOriginal(a1, a2);
+
+    const bool suppress = Config::g_pickupSuppressEnabled.load(std::memory_order_acquire);
+    const bool logging  = Logger::g_logWriteEnabled.load(std::memory_order_acquire);
+
+    // 两个开关全关时直接放行——每个拾取都会经过这里，早退是最大收益。
+    if (!suppress && !logging)
         return CallOriginal(a1, a2);
 
     char iconUtf8[64] = {};
@@ -105,24 +111,30 @@ static __int64 __fastcall PD_Handler(__int64 a1, __int64 a2)
     bool shouldBlock = false;
 
     __try {
-        // 先只转 icon；非目标图标（绝大多数拾取）直接省掉 name 转换。
         ReadStringUtf8SEH(*(__int64*)(a2 + 0x28), iconUtf8, 64);
 
-        if (iconUtf8[0] && strstr(iconUtf8, "UI_ItemIcon_112")) {
+        const bool isTargetIcon =
+            iconUtf8[0] && strstr(iconUtf8, "UI_ItemIcon_112") != nullptr;
+
+        // 拦截判定与日志都可能需要 name；仅日志关闭且非目标图标时可省去转换。
+        if (logging || isTargetIcon)
             ReadStringUtf8SEH(*(__int64*)(a2 + 0x18), nameUtf8, 64);
 
-            if (!Whitelist::IsPickupAllowed(nameUtf8))
-                shouldBlock = true;
-        }
+        if (suppress && isTargetIcon)
+            shouldBlock = !Whitelist::IsPickupAllowed(nameUtf8);
     }
     __except (EXCEPTION_EXECUTE_HANDLER) {
         // 热路径异常保持静默。
     }
 
-    if (shouldBlock) {
-        LOG("PDhook", "BLOCK icon='%s' name='%s'", iconUtf8, nameUtf8);
-        return 0;
+    // 进入函数的每个拾取都记录 icon 和 name；BLOCK 仅用于命中的目标图标。
+    if (logging) {
+        LOG("PDhook", "%s icon='%s' name='%s'",
+            shouldBlock ? "BLOCK" : "PASS", iconUtf8, nameUtf8);
     }
+
+    if (shouldBlock)
+        return 0;
 
     return CallOriginal(a1, a2);
 }

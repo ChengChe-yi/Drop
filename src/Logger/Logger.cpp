@@ -11,6 +11,44 @@ namespace Logger
     static bool    g_logPathReady = false;
     static SRWLOCK g_logLock = SRWLOCK_INIT;
 
+    // 句柄缓存：频繁写入期间保持文件打开，省去每行的 open/close；
+    // 空闲超过 kIdleCloseMs 由线程池定时器关闭，句柄释放后 Drop.log 可被删除/替换。
+    static constexpr DWORD kIdleCloseMs = 1000;
+
+    static FILE*     g_logFile       = nullptr;  // 缓存中的句柄（nullptr = 已关闭）
+    static ULONGLONG g_lastWriteTick = 0;
+    static PTP_TIMER g_idleTimer     = nullptr;
+
+    // 负值 FILETIME = 相对当前时刻的到期时间（单位 100ns）。
+    static FILETIME RelativeDue(DWORD ms)
+    {
+        LARGE_INTEGER li;
+        li.QuadPart = -(static_cast<LONGLONG>(ms) * 10000LL);
+        FILETIME ft;
+        ft.dwLowDateTime  = li.LowPart;
+        ft.dwHighDateTime = li.HighPart;
+        return ft;
+    }
+
+    // 空闲到期：真空闲就关句柄；期间又有写入则顺延到剩余时间再查。
+    static VOID CALLBACK LogIdleCloseCb(PTP_CALLBACK_INSTANCE, PVOID, PTP_TIMER)
+    {
+        AcquireSRWLockExclusive(&g_logLock);
+
+        if (g_logFile) {
+            const ULONGLONG idle = GetTickCount64() - g_lastWriteTick;
+            if (idle >= kIdleCloseMs) {
+                fclose(g_logFile);
+                g_logFile = nullptr;
+            } else if (g_idleTimer) {
+                FILETIME due = RelativeDue(kIdleCloseMs - static_cast<DWORD>(idle));
+                SetThreadpoolTimer(g_idleTimer, &due, 0, 0);
+            }
+        }
+
+        ReleaseSRWLockExclusive(&g_logLock);
+    }
+
     void InitLogFile(HMODULE hModule)
     {
         if (g_logPathReady) return;
@@ -27,6 +65,9 @@ namespace Logger
 
         wcscpy_s(g_logPath, modulePath);
         g_logPathReady = (g_logPath[0] != 0);
+
+        if (g_logPathReady && !g_idleTimer)
+            g_idleTimer = CreateThreadpoolTimer(LogIdleCloseCb, nullptr, nullptr);
     }
 
     void WriteLog(const char* text)
@@ -35,21 +76,51 @@ namespace Logger
             return;
 
         AcquireSRWLockExclusive(&g_logLock);
-        FILE* f = nullptr;
-        _wfopen_s(&f, g_logPath, L"ab");
-        if (f) {
-            fseek(f, 0, SEEK_END);
-            if (ftell(f) == 0) {
-                const unsigned char bom[] = { 0xEF, 0xBB, 0xBF };
-                fwrite(bom, 1, 3, f);
+
+        // 句柄不在了才重新打开；首次打开空文件时补 BOM。
+        if (!g_logFile) {
+            _wfopen_s(&g_logFile, g_logPath, L"ab");
+            if (g_logFile) {
+                fseek(g_logFile, 0, SEEK_END);
+                if (ftell(g_logFile) == 0) {
+                    const unsigned char bom[] = { 0xEF, 0xBB, 0xBF };
+                    fwrite(bom, 1, 3, g_logFile);
+                }
             }
-            fwrite(text, 1, strlen(text), f);
-            fclose(f);
         }
+
+        if (g_logFile) {
+            fwrite(text, 1, strlen(text), g_logFile);
+            // 每行都落盘：崩溃时日志必须存活，这是本日志的主要用途。
+            fflush(g_logFile);
+            g_lastWriteTick = GetTickCount64();
+
+            // 重置空闲计时：定时器顺延到 kIdleCloseMs 之后。
+            if (g_idleTimer) {
+                FILETIME due = RelativeDue(kIdleCloseMs);
+                SetThreadpoolTimer(g_idleTimer, &due, 0, 0);
+            }
+        }
+
         ReleaseSRWLockExclusive(&g_logLock);
     }
 
+    // 仅动态卸载时由 worker 调用一次；先在锁外等定时器回调排空，避免死锁。
     void CloseLog()
     {
+        if (g_idleTimer) {
+            SetThreadpoolTimer(g_idleTimer, nullptr, 0, 0);
+            WaitForThreadpoolTimerCallbacks(g_idleTimer, TRUE);
+            CloseThreadpoolTimer(g_idleTimer);
+            g_idleTimer = nullptr;
+        }
+
+        AcquireSRWLockExclusive(&g_logLock);
+        if (g_logFile) {
+            fclose(g_logFile);
+            g_logFile = nullptr;
+        }
+        g_logPathReady = false;   // 之后到来的零星写入直接丢弃
+        ReleaseSRWLockExclusive(&g_logLock);
     }
 }

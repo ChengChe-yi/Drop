@@ -4,12 +4,16 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-7.0.2-blue?style=flat-square)
+![Version](https://img.shields.io/github/v/tag/ChengChe-yi/Drop?style=flat-square&label=version&color=blue&sort=semver)
 ![Platform](https://img.shields.io/badge/platform-Windows-0078d4?style=flat-square&logo=windows)
 ![Status](https://img.shields.io/badge/status-beta-orange?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
 
 一款拦截拾取提示框 UI 的插件,支持白名单与热重载。
+
+<img src="docs/preview.jpg" width="720" alt="屏蔽效果预览"/>
+
+*掉落物不再弹出拾取提示框,正常交互(烹饪)不受影响*
 
 </div>
 

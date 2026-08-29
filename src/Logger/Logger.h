@@ -5,6 +5,8 @@
 #include <atomic>
 
 // 轻量文件日志：写入 DLL 同目录 Drop.log（UTF-8，自动补 BOM）。
+// 句柄缓存：写入期间保持文件打开，空闲 1s 后由线程池定时器关闭；
+// 每行 fflush 落盘，崩溃时已写内容不丢。
 // 状态全部收在 Logger.cpp 单一编译单元，避免 inline 变量的 ODR 问题。
 
 namespace Logger
@@ -18,7 +20,7 @@ namespace Logger
     // 追加一行（调用方已完成格式化）。
     void WriteLog(const char* text);
 
-    // 预留，当前为空操作。
+    // 关闭日志：取消空闲定时器并释放缓存的句柄；仅动态卸载时调用一次。
     void CloseLog();
 }
 
