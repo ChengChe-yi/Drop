@@ -101,7 +101,7 @@ static void LogBtnFields(__int64 a2)
                     icon1Utf8[0] ? icon1Utf8 : icon2Utf8);
     }
 
-    LOG("InteeProbe", "%s", line);
+    LOG("交互类", "%s", line);
 }
 
 static __int64 __fastcall ProbeHandler(__int64 a1, __int64 a2)
@@ -121,25 +121,25 @@ static bool DoInit()
 
     MH_STATUS st = MH_Initialize();
     if (st != MH_OK && st != MH_ERROR_ALREADY_INITIALIZED) {
-        LOG("InteeProbe", "MH_Initialize failed: %s", MH_StatusToString(st));
+        LOG("交互类", "MH_Initialize failed: %s", MH_StatusToString(st));
         return false;
     }
 
     st = MH_CreateHook(g_target, &ProbeHandler,
                        reinterpret_cast<void**>(&g_orig));
     if (st != MH_OK) {
-        LOG("InteeProbe", "MH_CreateHook failed: %s", MH_StatusToString(st));
+        LOG("交互类", "MH_CreateHook failed: %s", MH_StatusToString(st));
         return false;
     }
 
     st = MH_EnableHook(g_target);
     if (st != MH_OK) {
-        LOG("InteeProbe", "MH_EnableHook failed: %s", MH_StatusToString(st));
+        LOG("交互类", "MH_EnableHook failed: %s", MH_StatusToString(st));
         return false;
     }
 
     g_hooked.store(true, std::memory_order_release);
-    LOG("InteeProbe", "target=%llX (MinHook)", (uint64_t)g_target);
+    LOG("交互类", "target=%llX (MinHook)", (uint64_t)g_target);
     return true;
 }
 
@@ -147,7 +147,7 @@ bool InteeProbe::Init()
 {
     __try { return DoInit(); }
     __except (EXCEPTION_EXECUTE_HANDLER) {
-        LOG_MSG("InteeProbe", "Init EXCEPTION!");
+        LOG_MSG("交互类", "Init EXCEPTION!");
         return false;
     }
 }
@@ -160,5 +160,5 @@ void InteeProbe::Uninit()
     MH_DisableHook(g_target);
     MH_Uninitialize();
     g_orig = nullptr;
-    LOG_MSG("InteeProbe", "Uninit OK (MinHook released)");
+    LOG_MSG("交互类", "Uninit OK (MinHook released)");
 }
