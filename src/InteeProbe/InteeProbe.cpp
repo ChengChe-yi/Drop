@@ -2,6 +2,7 @@
 #include <windows.h>
 #include "InteeProbe.h"
 #include <MinHook.h>
+#include "InteeBtn.h"
 #include "Patterns.h"
 #include "Config.h"
 #include "Logger.h"
@@ -17,41 +18,6 @@ static std::atomic<bool> g_hooked{ false };
 typedef __int64 (__fastcall* tOriginal2)(__int64, __int64);
 static tOriginal2 g_orig = nullptr;
 
-
-#pragma pack(push, 4)
-struct Il2CppObject {
-    void* klass;
-    void* monitor;
-};
-#pragma pack(pop)
-
-struct Il2CppString {
-    Il2CppObject object;
-    int32_t length;
-    wchar_t chars[1];
-};
-
-
-static bool ReadStringUtf8SEH(__int64 p, char* out, int outSize)
-{
-    if (!p || (size_t)p < 0x10000) return false;
-    __try {
-        Il2CppString* str = (Il2CppString*)p;
-        if (str->length <= 0 || str->length >= 100) return false;
-        int cl = (str->length < 30) ? str->length : 30;
-        int written = WideCharToMultiByte(CP_UTF8, 0, str->chars, cl,
-                                          out, outSize - 1, nullptr, nullptr);
-        if (written <= 0) {
-            out[0] = 0;
-            return false;
-        }
-        out[written] = 0;
-        return true;
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER) {
-        return false;
-    }
-}
 
 static bool ProbeActive()
 {
@@ -85,31 +51,24 @@ static void LogBtnFields(__int64 a2)
 {
     char nameUtf8[96] = {};
     char dispUtf8[96] = {};
-    char icon1Utf8[64] = {};
-    char icon2Utf8[96] = {};
+    char iconUtf8[96] = {};
 
     __try {
-        ReadStringUtf8SEH(*(__int64*)(a2 + 0x18), nameUtf8, 96);
-        ReadStringUtf8SEH(*(__int64*)(a2 + 0x20), dispUtf8, 96);
-        ReadStringUtf8SEH(*(__int64*)(a2 + 0x28), icon1Utf8, 64);
-        ReadStringUtf8SEH(*(__int64*)(a2 + 0x38), icon2Utf8, 96);
+        // 文本走字段（变体布局：+0x18 物品名 / +0x20 交互文本）。
+        InteeBtn::ReadIl2CppUtf8(*(__int64*)(a2 + 0x18), nameUtf8, 96);
+        InteeBtn::ReadIl2CppUtf8(*(__int64*)(a2 + 0x20), dispUtf8, 96);
     }
     __except (EXCEPTION_EXECUTE_HANDLER) {
         return;
     }
 
+    // 图标统一走接口方法 #2（查表，含 NPC 对话的配置回退）。
+    InteeBtn::ReadStringUtf8((void*)a2, 2, iconUtf8, 96);
+
     char line[512] = {};
     int used = 0;
-    if (icon1Utf8[0] && icon2Utf8[0]) {
-        AppendField(line, sizeof(line), &used, "icon1", icon1Utf8);
-        PadBytes(line, sizeof(line), &used, 34);
-        AppendRaw(line, sizeof(line), &used, " ");
-        AppendField(line, sizeof(line), &used, "icon2", icon2Utf8);
-    } else {
-        AppendField(line, sizeof(line), &used, "icon",
-                    icon1Utf8[0] ? icon1Utf8 : icon2Utf8);
-        PadBytes(line, sizeof(line), &used, 34);
-    }
+    AppendField(line, sizeof(line), &used, "icon", iconUtf8);
+    PadBytes(line, sizeof(line), &used, 34);
     AppendRaw(line, sizeof(line), &used, " ");
     if (nameUtf8[0] && dispUtf8[0]) {
         AppendField(line, sizeof(line), &used, "name", nameUtf8);

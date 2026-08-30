@@ -31,6 +31,9 @@
     <Filter Include="InteeProbe">
       <UniqueIdentifier>{B7A1C5D2-9E4F-4C3A-8D6B-2F5E1A9C0B34}</UniqueIdentifier>
     </Filter>
+    <Filter Include="InteeBtn">
+      <UniqueIdentifier>{D9F4B6E3-51A8-4D2C-BE70-6A3C8E4F1D25}</UniqueIdentifier>
+    </Filter>
     <Filter Include="MinHook">
       <UniqueIdentifier>{C4E2A8B1-3F7D-4B9E-9A5C-8D1E6F2B7A40}</UniqueIdentifier>
     </Filter>
@@ -71,6 +74,9 @@
     </ClInclude>
     <ClInclude Include="src\InteeProbe\InteeProbe.h">
       <Filter>InteeProbe</Filter>
+    </ClInclude>
+    <ClInclude Include="src\InteeBtn\InteeBtn.h">
+      <Filter>InteeBtn</Filter>
     </ClInclude>
     <ClInclude Include="src\MinHook\include\MinHook.h">
       <Filter>MinHook\include</Filter>
@@ -127,6 +133,9 @@
     </ClCompile>
     <ClCompile Include="src\InteeProbe\InteeProbe.cpp">
       <Filter>InteeProbe</Filter>
+    </ClCompile>
+    <ClCompile Include="src\InteeBtn\InteeBtn.cpp">
+      <Filter>InteeBtn</Filter>
     </ClCompile>
     <ClCompile Include="src\MinHook\src\buffer.c">
       <Filter>MinHook\src</Filter>

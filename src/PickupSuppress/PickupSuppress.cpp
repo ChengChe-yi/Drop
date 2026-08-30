@@ -2,6 +2,7 @@
 #include <windows.h>
 #include "PickupSuppress.h"
 #include <MinHook.h>
+#include "InteeBtn.h"
 #include "Patterns.h"
 #include "Config.h"
 #include "Logger.h"
@@ -25,40 +26,6 @@ static std::atomic<bool> g_hooked{ false };
 
 typedef __int64 (__fastcall* tOriginal2)(__int64, __int64);
 static tOriginal2 g_orig = nullptr;
-
-#pragma pack(push, 4)
-struct Il2CppObject {
-    void* klass;
-    void* monitor;
-};
-#pragma pack(pop)
-
-struct Il2CppString {
-    Il2CppObject object;
-    int32_t length;
-    wchar_t chars[1];
-};
-
-static bool ReadStringUtf8SEH(__int64 p, char* out, int outSize)
-{
-    if (!p || (size_t)p < 0x10000) return false;
-    __try {
-        Il2CppString* str = (Il2CppString*)p;
-        if (str->length <= 0 || str->length >= 100) return false;
-        int cl = (str->length < 30) ? str->length : 30;
-        int written = WideCharToMultiByte(CP_UTF8, 0, str->chars, cl,
-                                          out, outSize - 1, nullptr, nullptr);
-        if (written <= 0) {
-            out[0] = 0;   // 失败调用可能已留下部分字节；归空，按读取失败处理。
-            return false;
-        }
-        out[written] = 0;
-        return true;
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER) {
-        return false;
-    }
-}
 
 static void AppendField(char* buf, int bufChars, int* used,
                         const char* key, const char* value)
@@ -99,14 +66,15 @@ static __int64 __fastcall PD_Handler(__int64 a1, __int64 a2)
     bool shouldBlock = false;
 
     __try {
-        ReadStringUtf8SEH(*(__int64*)(a2 + 0x28), iconUtf8, 64);
+        // 图标统一走接口方法 #2（查表，含 NPC 对话的配置回退）。
+        InteeBtn::ReadStringUtf8((void*)a2, 2, iconUtf8, 64);
 
         const bool isTargetIcon =
             iconUtf8[0] && strstr(iconUtf8, "UI_ItemIcon_112") != nullptr;
 
         // 拦截判定与日志都可能需要 name；仅日志关闭且非目标图标时可省去转换。
         if (logging || isTargetIcon)
-            ReadStringUtf8SEH(*(__int64*)(a2 + 0x18), nameUtf8, 128);
+            InteeBtn::ReadIl2CppUtf8(*(__int64*)(a2 + 0x18), nameUtf8, 128);
 
         if (suppress && isTargetIcon)
             shouldBlock = !Whitelist::IsPickupAllowed(nameUtf8);

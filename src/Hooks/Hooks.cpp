@@ -2,6 +2,7 @@
 #include <windows.h>
 #include "Hooks.h"
 #include <MinHook.h>
+#include "InteeBtn.h"
 #include "PickupSuppress.h"
 #include "InteeProbe.h"
 #include "Logger.h"
@@ -11,6 +12,7 @@ namespace Hooks
     bool Init()
     {
         LOG_MSG("Hooks", "Initializing hooks ...");
+        InteeBtn::Init();
         bool suppress = PickupSuppress::Init();
         InteeProbe::Init();
         return suppress;

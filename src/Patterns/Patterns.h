@@ -28,5 +28,9 @@ namespace Offsets
 
         inline constexpr uintptr_t BtnDispatch        = 0xF496C80;
 
+        // 按钮对象接口类指针槽 qword_1455C8B38（InteeBtn 查表用），
+        // 运行期由 il2cpp 填充。
+        inline constexpr uintptr_t InteeBtnIfaceKlass = 0x55C8B38;
+
     }
 }
