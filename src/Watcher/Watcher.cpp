@@ -24,8 +24,8 @@ namespace Watcher
         bool      seeded;
     };
 
-    // 顺序约定：[0] → config 回调，[1] → whitelist 回调。
-    static Tracked s_files[2] = {};
+    // 顺序约定：[0] → config 回调，[1] → whitelist 回调，[2] → blacklist 回调。
+    static Tracked s_files[3] = {};
 
     static void JoinPath(const wchar_t* name, wchar_t* out, size_t outChars)
     {
@@ -208,12 +208,14 @@ namespace Watcher
 
     bool Start(const char* dir,
                void (*onConfigChange)(),
-               void (*onWhitelistChange)())
+               void (*onWhitelistChange)(),
+               void (*onBlacklistChange)())
     {
         if (s_thread)
             return true;   // 已在运行
 
-        if (!dir || !*dir || !onConfigChange || !onWhitelistChange)
+        if (!dir || !*dir ||
+            !onConfigChange || !onWhitelistChange || !onBlacklistChange)
             return false;
 
         // GetModuleFileNameA 产出系统代码页 ANSI，CP_ACP 可无损往返。
@@ -223,6 +225,7 @@ namespace Watcher
 
         s_files[0] = { L"Config.ini",    onConfigChange,    0, false };
         s_files[1] = { L"Whitelist.ini", onWhitelistChange, 0, false };
+        s_files[2] = { L"Blacklist.ini", onBlacklistChange, 0, false };
 
         s_stop = CreateEventW(nullptr, TRUE, FALSE, nullptr);
         if (!s_stop)

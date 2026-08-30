@@ -13,7 +13,7 @@
     <Filter Include="Patterns">
       <UniqueIdentifier>{3D4E7C8F-5A6B-4C8D-9E1F-2B3C4D5E6F7A}</UniqueIdentifier>
     </Filter>
-    <Filter Include="PickupSuppress">
+    <Filter Include="PickupFilter">
       <UniqueIdentifier>{9F3A4B5C-6D7E-4F8A-9B0C-1D2E3F4A5B6C}</UniqueIdentifier>
     </Filter>
     <Filter Include="Logger">
@@ -22,7 +22,7 @@
     <Filter Include="Scanner">
       <UniqueIdentifier>{3E5F6A7B-8C9D-4E0F-A1B2-C3D4E5F6A7B8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Whitelist">
+    <Filter Include="Lists">
       <UniqueIdentifier>{7C8D9E0F-1A2B-3C4D-5E6F-7A8B9C0D1E2F}</UniqueIdentifier>
     </Filter>
     <Filter Include="Watcher">
@@ -60,8 +60,8 @@
     <ClInclude Include="src\Patterns\Patterns.h">
       <Filter>Patterns</Filter>
     </ClInclude>
-    <ClInclude Include="src\PickupSuppress\PickupSuppress.h">
-      <Filter>PickupSuppress</Filter>
+    <ClInclude Include="src\PickupFilter\PickupFilter.h">
+      <Filter>PickupFilter</Filter>
     </ClInclude>
     <ClInclude Include="src\Logger\Logger.h">
       <Filter>Logger</Filter>
@@ -69,8 +69,8 @@
     <ClInclude Include="src\Scanner\Scanner.h">
       <Filter>Scanner</Filter>
     </ClInclude>
-    <ClInclude Include="src\Whitelist\Whitelist.h">
-      <Filter>Whitelist</Filter>
+    <ClInclude Include="src\Lists\Lists.h">
+      <Filter>Lists</Filter>
     </ClInclude>
     <ClInclude Include="src\Watcher\Watcher.h">
       <Filter>Watcher</Filter>
@@ -122,8 +122,8 @@
     <ClCompile Include="src\Hooks\Hooks.cpp">
       <Filter>Hooks</Filter>
     </ClCompile>
-    <ClCompile Include="src\PickupSuppress\PickupSuppress.cpp">
-      <Filter>PickupSuppress</Filter>
+    <ClCompile Include="src\PickupFilter\PickupFilter.cpp">
+      <Filter>PickupFilter</Filter>
     </ClCompile>
     <ClCompile Include="src\Scanner\Scanner.cpp">
       <Filter>Scanner</Filter>
@@ -131,8 +131,8 @@
     <ClCompile Include="src\Logger\Logger.cpp">
       <Filter>Logger</Filter>
     </ClCompile>
-    <ClCompile Include="src\Whitelist\Whitelist.cpp">
-      <Filter>Whitelist</Filter>
+    <ClCompile Include="src\Lists\Lists.cpp">
+      <Filter>Lists</Filter>
     </ClCompile>
     <ClCompile Include="src\Watcher\Watcher.cpp">
       <Filter>Watcher</Filter>
@@ -166,8 +166,11 @@
     <None Include="src\Config\Config.ini">
       <Filter>Config</Filter>
     </None>
-    <None Include="src\Whitelist\Whitelist.ini">
-      <Filter>Whitelist</Filter>
+    <None Include="src\Lists\Whitelist.ini">
+      <Filter>Lists</Filter>
+    </None>
+    <None Include="src\Lists\Blacklist.ini">
+      <Filter>Lists</Filter>
     </None>
   </ItemGroup>
 </Project>

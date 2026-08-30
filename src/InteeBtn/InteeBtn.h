@@ -3,7 +3,7 @@
 
 // 交互按钮对象（AHJCGJKAGFD / InteractionInteeBtn）统一读取工具：
 // 接口方法查表调用 + Il2CppString → UTF-8。
-// 供 PickupSuppress / InteeProbe 两个 hook 共用，替代各自的字段直读。
+// 供 PickupFilter / InteeProbe 两个 hook 共用，替代各自的字段直读。
 namespace InteeBtn
 {
     // 解析模块基址、缓存接口类指针槽地址。Hooks::Init 最先调用。

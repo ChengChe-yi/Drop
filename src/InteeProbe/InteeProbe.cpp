@@ -3,6 +3,7 @@
 #include "InteeProbe.h"
 #include <MinHook.h>
 #include "InteeBtn.h"
+#include "Lists.h"
 #include "Patterns.h"
 #include "Config.h"
 #include "Logger.h"
@@ -21,8 +22,8 @@ static tOriginal2 g_orig = nullptr;
 
 static bool ProbeActive()
 {
-    return Config::g_inteeProbeEnabled.load(std::memory_order_acquire) &&
-           Logger::g_logWriteEnabled.load(std::memory_order_acquire);
+    // 探针无独立开关：输出跟随 [Log]。
+    return Logger::g_logWriteEnabled.load(std::memory_order_acquire);
 }
 
 
@@ -47,7 +48,9 @@ static void PadBytes(char* buf, int bufChars, int* used, int width)
         buf[(*used)++] = ' ';
 }
 
-static void LogBtnFields(__int64 a2)
+// 固定字段读取 + 黑名单判定。返回是否命中黑名单（供上层跳过原函数）。
+// 本分支原本放行，只有黑名单命中才拦；白名单不参与。
+static bool LogBtnFields(__int64 a2)
 {
     char nameUtf8[96] = {};
     char dispUtf8[96] = {};
@@ -59,7 +62,7 @@ static void LogBtnFields(__int64 a2)
         InteeBtn::ReadIl2CppUtf8(*(__int64*)(a2 + 0x20), dispUtf8, 96);
     }
     __except (EXCEPTION_EXECUTE_HANDLER) {
-        return;
+        return false;   // 读失败不拦截，放行
     }
 
     // 图标统一走接口方法 #2（查表，含 NPC 对话的配置回退）。
@@ -79,13 +82,23 @@ static void LogBtnFields(__int64 a2)
                     nameUtf8[0] ? nameUtf8 : dispUtf8);
     }
 
+    const bool block = Lists::IsBlacklisted(
+        nameUtf8[0] ? nameUtf8 : dispUtf8, iconUtf8);
+    if (block)
+        AppendRaw(line, sizeof(line), &used, " BLOCK");
+
     LOG("交互类", "%s", line);
+    return block;
 }
 
 static __int64 __fastcall ProbeHandler(__int64 a1, __int64 a2)
 {
     if (a2 && ProbeActive())
-        LogBtnFields(a2);
+    {
+        // 名单命中黑名单的交互条目不入面板。
+        if (LogBtnFields(a2))
+            return 0;
+    }
     return g_orig(a1, a2);
 }
 

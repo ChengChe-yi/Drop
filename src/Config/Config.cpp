@@ -2,9 +2,9 @@
 #include <windows.h>
 #include "Config.h"
 #include "Ini.h"
+#include "Lists.h"
 #include "Watcher.h"
 #include "Logger.h"
-#include "Whitelist.h"
 #include <cstring>
 
 namespace Config
@@ -13,8 +13,9 @@ namespace Config
     extern "C" IMAGE_DOS_HEADER __ImageBase;
 
     std::atomic<bool> g_logEnabled{true};
-    std::atomic<bool> g_pickupSuppressEnabled{true};
-    std::atomic<bool> g_inteeProbeEnabled{true};
+    std::atomic<bool> g_pickupFilterEnabled{true};
+    std::atomic<bool> g_whitelistEnabled{true};
+    std::atomic<bool> g_blacklistEnabled{true};
 
     static char      g_cachedDir[MAX_PATH];
     static bool      g_cachedDirReady = false;
@@ -90,15 +91,18 @@ namespace Config
             Logger::g_logWriteEnabled.store(g_logEnabled.load(std::memory_order_acquire), std::memory_order_release);
         }
 
-        if (Ini::GetValue(content, "PickupSuppress", "Value", val, sizeof(val)))
-            g_pickupSuppressEnabled.store(Ini::ParseBool(val, true), std::memory_order_release);
+        if (Ini::GetValue(content, "PickupFilter", "Value", val, sizeof(val)))
+            g_pickupFilterEnabled.store(Ini::ParseBool(val, true), std::memory_order_release);
 
-        if (Ini::GetValue(content, "InteeProbe", "Value", val, sizeof(val)))
-            g_inteeProbeEnabled.store(Ini::ParseBool(val, true), std::memory_order_release);
+        if (Ini::GetValue(content, "Whitelist", "Value", val, sizeof(val)))
+            g_whitelistEnabled.store(Ini::ParseBool(val, true), std::memory_order_release);
 
-        LOG("Config", "Reload: Log=%d PickupSuppress=%d InteeProbe=%d",
-            (int)g_logEnabled.load(), (int)g_pickupSuppressEnabled.load(),
-            (int)g_inteeProbeEnabled.load());
+        if (Ini::GetValue(content, "Blacklist", "Value", val, sizeof(val)))
+            g_blacklistEnabled.store(Ini::ParseBool(val, true), std::memory_order_release);
+
+        LOG("Config", "Reload: Log=%d PickupFilter=%d Whitelist=%d Blacklist=%d",
+            (int)g_logEnabled.load(), (int)g_pickupFilterEnabled.load(),
+            (int)g_whitelistEnabled.load(), (int)g_blacklistEnabled.load());
 
         delete[] content;
     }
@@ -107,7 +111,7 @@ namespace Config
     {
         // 初始加载在 worker 线程完成；watcher 随后播种 mtime，首次检查不会误触发。
         Reload();
-        Whitelist::Load();
+        Lists::LoadAll();
 
         char dir[MAX_PATH];
         if (GetModuleDir(dir, sizeof(dir)) == 0) {
@@ -115,7 +119,7 @@ namespace Config
             return;
         }
 
-        if (Watcher::Start(dir, &Reload, &Whitelist::Load))
+        if (Watcher::Start(dir, &Reload, &Lists::LoadAll, &Lists::LoadAll))
             LOG_MSG("Config", "Hot reload enabled (event-driven, 200ms debounce)");
         else
             LOG_MSG("Config", "Watcher failed to start, hot reload disabled");

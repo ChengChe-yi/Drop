@@ -1,16 +1,32 @@
 ﻿#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include "PickupSuppress.h"
+#include "PickupFilter.h"
 #include <MinHook.h>
 #include "InteeBtn.h"
+#include "Lists.h"
 #include "Patterns.h"
 #include "Config.h"
 #include "Logger.h"
-#include "Whitelist.h"
 #include <atomic>
 #include <cstdint>
 #include <cstring>
 
+// ============================================================================
+// PickupFilter —— 拾取条目过滤（NOEFNCCMEBC，dump: NCLIFAHNANC.NOEFNCCMEBC，
+// RVA 0xF4944B0）。
+//
+//   Intee 面板组件中 type=1 按钮的执行分支：AddPickupOption 建条目并渲染。
+//   黑名单命中无条件拦截；白名单命中放行；否则按默认规则——命中目标
+//   图标族（UI_ItemIcon_112 子串）才拦，提示框不再弹出。
+//   读到的字段：+0x18 物品名；图标走接口方法 #2（InteeBtn 统一查表）。
+//
+//   hook 机制：MinHook（src/MinHook，BSD 授权，静态编译）。指令边界
+//   解析、trampoline 构建、目标 patch 全部由它完成，卸载也无竞态。
+//   prologue 16 字节仍做版本守卫（编码唯一）：字节不匹配（游戏已更新）
+//   则拒绝 hook。
+// ============================================================================
+
+// 版本守卫基准：prologue 16 字节（push 序列 + sub rsp,68h）。
 static const uint8_t kExpectedPrologue[16] = {
     0x41, 0x57,                     // push r15
     0x41, 0x56,                     // push r14
@@ -27,6 +43,7 @@ static std::atomic<bool> g_hooked{ false };
 typedef __int64 (__fastcall* tOriginal2)(__int64, __int64);
 static tOriginal2 g_orig = nullptr;
 
+// 追加 key='value'（无尾随空格）。
 static void AppendField(char* buf, int bufChars, int* used,
                         const char* key, const char* value)
 {
@@ -40,7 +57,8 @@ static void AppendRaw(char* buf, int bufChars, int* used, const char* text)
     if (n > 0) *used += n;
 }
 
-
+// 按字节数补空格到固定列宽。仅用于纯 ASCII 字段区：字节宽 = 显示列宽，
+// 不受查看字体里中文字符宽度的影响（中文字段一律放行尾）。
 static void PadBytes(char* buf, int bufChars, int* used, int width)
 {
     while (*used < width && *used < bufChars - 1)
@@ -54,11 +72,11 @@ static __int64 __fastcall PD_Handler(__int64 a1, __int64 a2)
     if (!a2)
         return g_orig(a1, a2);
 
-    const bool suppress = Config::g_pickupSuppressEnabled.load(std::memory_order_acquire);
-    const bool logging  = Logger::g_logWriteEnabled.load(std::memory_order_acquire);
+    const bool filter  = Config::g_pickupFilterEnabled.load(std::memory_order_acquire);
+    const bool logging = Logger::g_logWriteEnabled.load(std::memory_order_acquire);
 
     // 两个开关全关时直接放行——每个拾取都会经过这里，早退是最大收益。
-    if (!suppress && !logging)
+    if (!filter && !logging)
         return g_orig(a1, a2);
 
     char iconUtf8[64] = {};
@@ -72,24 +90,32 @@ static __int64 __fastcall PD_Handler(__int64 a1, __int64 a2)
         const bool isTargetIcon =
             iconUtf8[0] && strstr(iconUtf8, "UI_ItemIcon_112") != nullptr;
 
-        // 拦截判定与日志都可能需要 name；仅日志关闭且非目标图标时可省去转换。
-        if (logging || isTargetIcon)
+        // 名单判定与日志都可能需要 name；仅日志关闭且过滤关闭时可省去转换。
+        if (logging || filter)
             InteeBtn::ReadIl2CppUtf8(*(__int64*)(a2 + 0x18), nameUtf8, 128);
 
-        if (suppress && isTargetIcon)
-            shouldBlock = !Whitelist::IsPickupAllowed(nameUtf8);
+        if (filter) {
+            // 名单判定：黑名单 > 白名单 > 默认（命中目标图标族才拦）。
+            Lists::Verdict v = Lists::Evaluate(nameUtf8, iconUtf8);
+            if (v == Lists::Verdict::Block)
+                shouldBlock = true;
+            else if (v == Lists::Verdict::Allow)
+                shouldBlock = false;
+            else
+                shouldBlock = isTargetIcon;
+        }
     }
     __except (EXCEPTION_EXECUTE_HANDLER) {
         // 热路径异常保持静默。
     }
 
+    // 每个拾取都输出一行；被拦的行尾带 BLOCK 标记（PASS 词省略）。
     if (logging)
     {
         char line[320] = {};
         int used = 0;
-
         AppendField(line, sizeof(line), &used, "icon", iconUtf8);
-        PadBytes(line, sizeof(line), &used, 34);
+        PadBytes(line, sizeof(line), &used, 30);
         AppendRaw(line, sizeof(line), &used, " ");
         AppendField(line, sizeof(line), &used, "text", nameUtf8);
         if (shouldBlock)
@@ -144,7 +170,7 @@ static bool DoInit()
     return true;
 }
 
-bool PickupSuppress::Init()
+bool PickupFilter::Init()
 {
     __try { return DoInit(); }
     __except (EXCEPTION_EXECUTE_HANDLER) {
@@ -153,7 +179,9 @@ bool PickupSuppress::Init()
     }
 }
 
-void PickupSuppress::Uninit()
+// MinHook 负责 trampoline 生命周期（含线程冻结，卸载无竞态）；
+// 这里只摘除本模块的 hook，MH_Uninitialize 由 Hooks::Uninit 统一调用。
+void PickupFilter::Uninit()
 {
     if (!g_hooked.exchange(false))
         return;

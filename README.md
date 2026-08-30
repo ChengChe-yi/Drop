@@ -47,7 +47,8 @@
 目录/
 ├── Drop.dll                 # 插件主 DLL
 ├── Config.ini               # 主配置文件
-└── Whitelist.ini            # 白名单配置文件
+├── Whitelist.ini            # 白名单配置文件
+└── Blacklist.ini            # 黑名单配置文件
 ```
 
 ---
@@ -57,15 +58,20 @@
 ### 配置项 (`Config.ini`)
 
 ```ini
-[PickupSuppress]
-Name  = 拾取提示框屏蔽
+[PickupFilter]
+Name  = 屏蔽怪物掉落物
 Type  = bool
 Value = 1   ; 1 = 开启,0 = 关闭,默认屏蔽怪物掉落物
 
-[InteeProbe]
-Name  = 交互按钮探测
+[Whitelist]
+Name  = 白名单启用
 Type  = bool
-Value = 1   ; 1 = 在 Drop.log 记录交互按钮对象的字段转储,0 = 关闭;输出依赖 [Log]
+Value = 1   ; 1 = 启用白名单,0 = 关闭
+
+[Blacklist]
+Name  = 黑名单启用
+Type  = bool
+Value = 1   ; 1 = 启用黑名单,0 = 关闭
 
 [Log]
 Name  = 日志开关
@@ -73,15 +79,19 @@ Type  = bool
 Value = 1   ; 1 = 输出日志,0 = 静默
 ```
 
-### 白名单 (`Whitelist.ini`)
+### 白名单 / 黑名单 (`Whitelist.ini` / `Blacklist.ini`)
 
-每行一个物品名,**必须与游戏当前语言保持一致**,精确匹配:
+名单文件各分两个区: `[Text]` 按名称精确匹配, `[Icon]` 按图标子串匹配:
 
 ```ini
-[PickupSuppress]
-; 在此列表中的物品即使图标匹配也不会被拦截
+[Text]
 史莱姆凝液
+
+[Icon]
+UI_ItemIcon_112
 ```
+
+判定顺序为 黑名单 > 白名单 > 默认(掉落物默认拦 112 图标族, 交互条目默认放行)。
 
 ---
 

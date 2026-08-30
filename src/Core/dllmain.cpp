@@ -3,7 +3,6 @@
 #include "Hooks.h"
 #include "Config.h"
 #include "Logger.h"
-#include "PickupSuppress.h"
 
 // DllMain 只做最小工作：存句柄、建事件、建 worker 线程。
 // loader lock 期间不做文件 IO / VirtualProtect / 子线程创建，

@@ -5,11 +5,14 @@
 
 namespace Config
 {
-    // 拾取提示框屏蔽开关 (Config.ini → [PickupSuppress])
-    extern std::atomic<bool> g_pickupSuppressEnabled;
+    // 拾取过滤开关 (Config.ini → [PickupFilter])
+    extern std::atomic<bool> g_pickupFilterEnabled;
 
-    // 交互按钮探测开关 (Config.ini → [InteeProbe])
-    extern std::atomic<bool> g_inteeProbeEnabled;
+    // 白名单启用 (Config.ini → [Whitelist])
+    extern std::atomic<bool> g_whitelistEnabled;
+
+    // 黑名单启用 (Config.ini → [Blacklist])
+    extern std::atomic<bool> g_blacklistEnabled;
 
     // 日志开关 (Config.ini → [Log])
     extern std::atomic<bool> g_logEnabled;
@@ -22,7 +25,7 @@ namespace Config
     // 返回本 DLL 所在目录（含尾部反斜杠），结果缓存。
     size_t GetModuleDir(char* buf, size_t bufChars);
 
-    // 启动事件驱动热重载（Config.ini → Reload，Whitelist.ini → Whitelist::Load）
+    // 启动事件驱动热重载（Config.ini → Reload，Whitelist/Blacklist.ini → Lists::LoadAll）
     void StartHotReload();
     void StopHotReload();
 }

@@ -3,7 +3,7 @@
 #include "Hooks.h"
 #include <MinHook.h>
 #include "InteeBtn.h"
-#include "PickupSuppress.h"
+#include "PickupFilter.h"
 #include "InteeProbe.h"
 #include "Logger.h"
 
@@ -13,7 +13,7 @@ namespace Hooks
     {
         LOG_MSG("Hooks", "Initializing hooks ...");
         InteeBtn::Init();
-        bool suppress = PickupSuppress::Init();
+        bool suppress = PickupFilter::Init();
         InteeProbe::Init();
         return suppress;
     }
@@ -21,7 +21,7 @@ namespace Hooks
     void Uninit()
     {
         InteeProbe::Uninit();
-        PickupSuppress::Uninit();
+        PickupFilter::Uninit();
         MH_Uninitialize();
         LOG_MSG("Hooks", "All hooks uninstalled");
     }
