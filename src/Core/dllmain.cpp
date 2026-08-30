@@ -19,9 +19,9 @@ namespace
         Config::StartHotReload();
 
         if (Hooks::Init())
-            LOG_MSG("Drop", "Plugin loaded");
+            LOG_MSG("InteeKit", "Plugin loaded");
         else
-            LOG_MSG("Drop", "Hook init failed");
+            LOG_MSG("InteeKit", "Hook init failed");
 
         WaitForSingleObject(g_stop, INFINITE);
 

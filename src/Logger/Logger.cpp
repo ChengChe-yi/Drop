@@ -12,7 +12,7 @@ namespace Logger
     static SRWLOCK g_logLock = SRWLOCK_INIT;
 
     // 句柄缓存：频繁写入期间保持文件打开，省去每行的 open/close；
-    // 空闲超过 kIdleCloseMs 由线程池定时器关闭，句柄释放后 Drop.log 可被删除/替换。
+    // 空闲超过 kIdleCloseMs 由线程池定时器关闭，句柄释放后 InteeKit.log 可被删除/替换。
     static constexpr DWORD kIdleCloseMs = 1000;
 
     static FILE*     g_logFile       = nullptr;  // 缓存中的句柄（nullptr = 已关闭）
@@ -59,9 +59,9 @@ namespace Logger
 
         wchar_t* lastSlash = wcsrchr(modulePath, L'\\');
         if (lastSlash)
-            wcscpy_s(lastSlash + 1, MAX_PATH - (lastSlash - modulePath + 1), L"Drop.log");
+            wcscpy_s(lastSlash + 1, MAX_PATH - (lastSlash - modulePath + 1), L"InteeKit.log");
         else
-            wcscpy_s(modulePath, L"Drop.log");
+            wcscpy_s(modulePath, L"InteeKit.log");
 
         wcscpy_s(g_logPath, modulePath);
         g_logPathReady = (g_logPath[0] != 0);

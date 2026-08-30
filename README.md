@@ -1,15 +1,15 @@
-﻿# Drop
+﻿# InteeKit
 
-> 自定义屏蔽掉落物拾取提示框的轻量插件
+> 统一管理游戏内拾取与交互提示框的轻量插件
 
 <div align="center">
 
-![Version](https://img.shields.io/github/v/tag/ChengChe-yi/Drop?style=flat-square&label=version&color=blue&sort=semver)
+![Version](https://img.shields.io/github/v/tag/ChengChe-yi/InteeKit?style=flat-square&label=version&color=blue&sort=semver)
 ![Platform](https://img.shields.io/badge/platform-Windows-0078d4?style=flat-square&logo=windows)
 ![Status](https://img.shields.io/badge/status-beta-orange?style=flat-square)
 ![License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
 
-一款拦截拾取提示框 UI 的插件,支持白名单与热重载。
+一款统一管理 Intee 交互面板的插件:白/黑名单过滤拾取与交互条目,支持热重载。
 
 <img src="docs/preview.jpg" width="720" alt="屏蔽效果预览"/>
 
@@ -45,7 +45,7 @@
 
 ```
 目录/
-├── Drop.dll                 # 插件主 DLL
+├── InteeKit.dll                 # 插件主 DLL
 ├── Config.ini               # 主配置文件
 ├── Whitelist.ini            # 白名单配置文件
 └── Blacklist.ini            # 黑名单配置文件
