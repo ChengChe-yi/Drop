@@ -13,6 +13,7 @@ namespace Config
 
     std::atomic<bool> g_logEnabled{true};
     std::atomic<bool> g_pickupSuppressEnabled{true};
+    std::atomic<bool> g_inteeProbeEnabled{true};
 
     static char      g_cachedDir[MAX_PATH];
     static bool      g_cachedDirReady = false;
@@ -252,8 +253,12 @@ namespace Config
         if (ReadIniValue(content, "PickupSuppress", "Value", val, sizeof(val)))
             g_pickupSuppressEnabled.store(ParseBool(val, true), std::memory_order_release);
 
-        LOG("Config", "Reload: Log=%d PickupSuppress=%d",
-            (int)g_logEnabled.load(), (int)g_pickupSuppressEnabled.load());
+        if (ReadIniValue(content, "InteeProbe", "Value", val, sizeof(val)))
+            g_inteeProbeEnabled.store(ParseBool(val, true), std::memory_order_release);
+
+        LOG("Config", "Reload: Log=%d PickupSuppress=%d InteeProbe=%d",
+            (int)g_logEnabled.load(), (int)g_pickupSuppressEnabled.load(),
+            (int)g_inteeProbeEnabled.load());
 
         delete[] content;
     }

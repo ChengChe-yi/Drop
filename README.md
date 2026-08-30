@@ -62,6 +62,11 @@ Name  = 拾取提示框屏蔽
 Type  = bool
 Value = 1   ; 1 = 开启,0 = 关闭,默认屏蔽怪物掉落物
 
+[InteeProbe]
+Name  = 交互按钮探测
+Type  = bool
+Value = 1   ; 1 = 在 Drop.log 记录交互按钮对象的字段转储,0 = 关闭;输出依赖 [Log]
+
 [Log]
 Name  = 日志开关
 Type  = bool
@@ -80,7 +85,9 @@ Value = 1   ; 1 = 输出日志,0 = 静默
 
 ---
 
+使用 [MinHook](https://github.com/TsudaKageyu/minhook),完整授权声明见 `src/MinHook` 源码文件头
 
+---
 ## 🤝 反馈与贡献
 
 - 🐛 提交 Issue:遇到崩溃、漏拦、误拦等情况

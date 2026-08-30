@@ -8,6 +8,9 @@ namespace Config
     // 拾取提示框屏蔽开关 (Config.ini → [PickupSuppress])
     extern std::atomic<bool> g_pickupSuppressEnabled;
 
+    // 交互按钮探测开关 (Config.ini → [InteeProbe])
+    extern std::atomic<bool> g_inteeProbeEnabled;
+
     // 日志开关 (Config.ini → [Log])
     extern std::atomic<bool> g_logEnabled;
 

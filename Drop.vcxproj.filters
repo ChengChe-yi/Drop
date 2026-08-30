@@ -28,6 +28,21 @@
     <Filter Include="Watcher">
       <UniqueIdentifier>{8D9E0F1A-2B3C-4D5E-8F7A-9B0C1D2E3F4A}</UniqueIdentifier>
     </Filter>
+    <Filter Include="InteeProbe">
+      <UniqueIdentifier>{B7A1C5D2-9E4F-4C3A-8D6B-2F5E1A9C0B34}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MinHook">
+      <UniqueIdentifier>{C4E2A8B1-3F7D-4B9E-9A5C-8D1E6F2B7A40}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MinHook\include">
+      <UniqueIdentifier>{8F1D3C62-A94B-4E07-B2D5-63A8C0F19E17}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MinHook\src">
+      <UniqueIdentifier>{5B7E9A04-2C61-4D38-8FAE-19C7B0D24E56}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MinHook\src\hde">
+      <UniqueIdentifier>{E2A6C718-9D43-4F5B-86C0-7B9513AD6F02}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Config\Config.h">
@@ -54,6 +69,36 @@
     <ClInclude Include="src\Watcher\Watcher.h">
       <Filter>Watcher</Filter>
     </ClInclude>
+    <ClInclude Include="src\InteeProbe\InteeProbe.h">
+      <Filter>InteeProbe</Filter>
+    </ClInclude>
+    <ClInclude Include="src\MinHook\include\MinHook.h">
+      <Filter>MinHook\include</Filter>
+    </ClInclude>
+    <ClInclude Include="src\MinHook\src\buffer.h">
+      <Filter>MinHook\src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\MinHook\src\hook.h">
+      <Filter>MinHook\src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\MinHook\src\trampoline.h">
+      <Filter>MinHook\src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\MinHook\src\hde\hde32.h">
+      <Filter>MinHook\src\hde</Filter>
+    </ClInclude>
+    <ClInclude Include="src\MinHook\src\hde\hde64.h">
+      <Filter>MinHook\src\hde</Filter>
+    </ClInclude>
+    <ClInclude Include="src\MinHook\src\hde\pstdint.h">
+      <Filter>MinHook\src\hde</Filter>
+    </ClInclude>
+    <ClInclude Include="src\MinHook\src\hde\table32.h">
+      <Filter>MinHook\src\hde</Filter>
+    </ClInclude>
+    <ClInclude Include="src\MinHook\src\hde\table64.h">
+      <Filter>MinHook\src\hde</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Core\dllmain.cpp">
@@ -79,6 +124,24 @@
     </ClCompile>
     <ClCompile Include="src\Watcher\Watcher.cpp">
       <Filter>Watcher</Filter>
+    </ClCompile>
+    <ClCompile Include="src\InteeProbe\InteeProbe.cpp">
+      <Filter>InteeProbe</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MinHook\src\buffer.c">
+      <Filter>MinHook\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MinHook\src\hook.c">
+      <Filter>MinHook\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MinHook\src\trampoline.c">
+      <Filter>MinHook\src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MinHook\src\hde\hde64.c">
+      <Filter>MinHook\src\hde</Filter>
+    </ClCompile>
+    <ClCompile Include="src\MinHook\src\hde\hde32.c">
+      <Filter>MinHook\src\hde</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
