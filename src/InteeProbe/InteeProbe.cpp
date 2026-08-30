@@ -63,8 +63,22 @@ static bool ProbeActive()
 static void AppendField(char* buf, int bufChars, int* used,
                         const char* key, const char* value)
 {
-    int n = sprintf_s(buf + *used, (size_t)(bufChars - *used), "%s='%s' ", key, value);
+    int n = sprintf_s(buf + *used, (size_t)(bufChars - *used), "%s='%s'", key, value);
     if (n > 0) *used += n;
+}
+
+static void AppendRaw(char* buf, int bufChars, int* used, const char* text)
+{
+    int n = sprintf_s(buf + *used, (size_t)(bufChars - *used), "%s", text);
+    if (n > 0) *used += n;
+}
+
+
+
+static void PadBytes(char* buf, int bufChars, int* used, int width)
+{
+    while (*used < width && *used < bufChars - 1)
+        buf[(*used)++] = ' ';
 }
 
 static void LogBtnFields(__int64 a2)
@@ -86,19 +100,24 @@ static void LogBtnFields(__int64 a2)
 
     char line[512] = {};
     int used = 0;
-    if (nameUtf8[0] && dispUtf8[0]) {
-        AppendField(line, sizeof(line), &used, "name", nameUtf8);
-        AppendField(line, sizeof(line), &used, "disp", dispUtf8);
-    } else {
-        AppendField(line, sizeof(line), &used, "text",
-                    nameUtf8[0] ? nameUtf8 : dispUtf8);
-    }
     if (icon1Utf8[0] && icon2Utf8[0]) {
         AppendField(line, sizeof(line), &used, "icon1", icon1Utf8);
+        PadBytes(line, sizeof(line), &used, 34);
+        AppendRaw(line, sizeof(line), &used, " ");
         AppendField(line, sizeof(line), &used, "icon2", icon2Utf8);
     } else {
         AppendField(line, sizeof(line), &used, "icon",
                     icon1Utf8[0] ? icon1Utf8 : icon2Utf8);
+        PadBytes(line, sizeof(line), &used, 34);
+    }
+    AppendRaw(line, sizeof(line), &used, " ");
+    if (nameUtf8[0] && dispUtf8[0]) {
+        AppendField(line, sizeof(line), &used, "name", nameUtf8);
+        AppendRaw(line, sizeof(line), &used, " ");
+        AppendField(line, sizeof(line), &used, "disp", dispUtf8);
+    } else {
+        AppendField(line, sizeof(line), &used, "text",
+                    nameUtf8[0] ? nameUtf8 : dispUtf8);
     }
 
     LOG("交互类", "%s", line);
@@ -158,7 +177,7 @@ void InteeProbe::Uninit()
         return;
 
     MH_DisableHook(g_target);
-    MH_Uninitialize();
+    MH_RemoveHook(g_target);
     g_orig = nullptr;
-    LOG_MSG("交互类", "Uninit OK (MinHook released)");
+    LOG_MSG("交互类", "Uninit OK");
 }
