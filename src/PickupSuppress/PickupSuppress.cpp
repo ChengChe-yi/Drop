@@ -181,8 +181,11 @@ static bool DoInit()
     patch[14] = 0x90;
     patch[15] = 0x90;
 
-    if (!VirtualProtect(g_target, kPatchLen, PAGE_EXECUTE_READWRITE, &old))
+    if (!VirtualProtect(g_target, kPatchLen, PAGE_EXECUTE_READWRITE, &old)) {
+        VirtualFree(g_trampoline, 0, MEM_RELEASE);
+        g_trampoline = nullptr;
         return false;
+    }
     memcpy(g_target, patch, kPatchLen);
     VirtualProtect(g_target, kPatchLen, old, &old);
 
@@ -202,7 +205,9 @@ bool PickupSuppress::Init()
     }
 }
 
-// 仅动态卸载时由 worker 调用一次；热路径永不触及。
+// 仅 worker 收尾路径调用一次（模块已 PIN，当前无触发方）；热路径永不触及。
+// 若将来把 g_stop 用作运行时停用：在途线程可能仍在 trampoline 内，
+// 此处的释放会带竞态，届时应保留页面不释放。
 void PickupSuppress::Uninit()
 {
     if (!g_hooked.exchange(false))

@@ -43,6 +43,15 @@ BOOL APIENTRY DllMain(HMODULE hModule,
         DisableThreadLibraryCalls(hModule);
         g_hModule = hModule;
 
+        // 注入型插件不支持动态卸载
+        {
+            HMODULE pinned = nullptr;
+            if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_PIN |
+                                        GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+                                    (LPCWSTR)hModule, &pinned))
+                return FALSE;
+        }
+
         g_stop = CreateEventW(nullptr, TRUE, FALSE, nullptr);
         if (!g_stop)
             return FALSE;
@@ -56,14 +65,6 @@ BOOL APIENTRY DllMain(HMODULE hModule,
         break;
 
     case DLL_PROCESS_DETACH:
-        // 仅 FreeLibrary 动态卸载时清理；进程退出路径不做事，避免拆除期崩溃。
-        if (lpReserved == nullptr)
-        {
-            if (g_stop && g_worker) {
-                SetEvent(g_stop);
-                WaitForSingleObject(g_worker, 3000);
-            }
-        }
         break;
     }
     return TRUE;

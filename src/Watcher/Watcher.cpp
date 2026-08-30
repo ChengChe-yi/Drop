@@ -162,13 +162,18 @@ namespace Watcher
 
                 HANDLE waits[2] = { s_stop, ovl.hEvent };
                 DWORD r = WaitForMultipleObjects(2, waits, FALSE, INFINITE);
-                if (r == WAIT_OBJECT_0)
-                    break;                                  // 停止信号
+                if (r == WAIT_OBJECT_0 || r == WAIT_FAILED)
+                    break;                                  // 停止信号（或句柄失效，兜底退出）
                 if (r != WAIT_OBJECT_0 + 1) {
                     LOG("Watcher", "wait failed %lu, polling fallback", r);
                     eventDriven = false;
                     continue;
                 }
+
+                // 异步调用下 RDCW 的 lpBytesReturned 未定义，实际字节数要从
+                // overlapped 结果取；取不到按缓冲不可解析处理，宁可多查一次。
+                if (!GetOverlappedResult(dir, &ovl, &bytes, FALSE))
+                    bytes = 0;
 
                 if (!BufferMentionsWatched(buffer, bytes))
                     continue;   // 游戏目录里其他文件的读写，忽略。
@@ -183,7 +188,7 @@ namespace Watcher
             else
             {
                 DWORD r = WaitForSingleObject(s_stop, kPollFallbackMs);
-                if (r == WAIT_OBJECT_0)
+                if (r == WAIT_OBJECT_0 || r == WAIT_FAILED)
                     break;
                 CheckAndFire();
             }
@@ -237,10 +242,12 @@ namespace Watcher
         if (!s_thread)
             return;
         SetEvent(s_stop);
-        WaitForSingleObject(s_thread, 3000);
+        const DWORD r = WaitForSingleObject(s_thread, 3000);
         CloseHandle(s_thread);
         s_thread = nullptr;
-        CloseHandle(s_stop);
-        s_stop = nullptr;
+        if (r == WAIT_OBJECT_0) {
+            CloseHandle(s_stop);
+            s_stop = nullptr;
+        }
     }
 }
