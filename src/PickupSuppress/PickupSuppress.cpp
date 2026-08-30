@@ -67,8 +67,13 @@ static bool ReadStringUtf8SEH(__int64 p, char* out, int outSize)
         Il2CppString* str = (Il2CppString*)p;
         if (str->length <= 0 || str->length >= 100) return false;
         int cl = (str->length < 30) ? str->length : 30;
-        WideCharToMultiByte(CP_UTF8, 0, str->chars, cl, out, outSize - 1, nullptr, nullptr);
-        out[outSize - 1] = 0;
+        int written = WideCharToMultiByte(CP_UTF8, 0, str->chars, cl,
+                                          out, outSize - 1, nullptr, nullptr);
+        if (written <= 0) {
+            out[0] = 0;   // 失败调用可能已留下部分字节；归空，按读取失败处理。
+            return false;
+        }
+        out[written] = 0;
         return true;
     }
     __except (EXCEPTION_EXECUTE_HANDLER) {
@@ -107,7 +112,7 @@ static __int64 __fastcall PD_Handler(__int64 a1, __int64 a2)
         return CallOriginal(a1, a2);
 
     char iconUtf8[64] = {};
-    char nameUtf8[64] = {};
+    char nameUtf8[128] = {};
     bool shouldBlock = false;
 
     __try {
@@ -118,7 +123,7 @@ static __int64 __fastcall PD_Handler(__int64 a1, __int64 a2)
 
         // 拦截判定与日志都可能需要 name；仅日志关闭且非目标图标时可省去转换。
         if (logging || isTargetIcon)
-            ReadStringUtf8SEH(*(__int64*)(a2 + 0x18), nameUtf8, 64);
+            ReadStringUtf8SEH(*(__int64*)(a2 + 0x18), nameUtf8, 128);
 
         if (suppress && isTargetIcon)
             shouldBlock = !Whitelist::IsPickupAllowed(nameUtf8);
