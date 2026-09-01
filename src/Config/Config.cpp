@@ -109,9 +109,9 @@ namespace Config
 
     void StartHotReload()
     {
-        // 初始加载在 worker 线程完成；watcher 随后播种 mtime，首次检查不会误触发。
-        Reload();
-        Lists::LoadAll();
+        
+        Lists::LoadWhitelist();
+        Lists::LoadBlacklist();
 
         char dir[MAX_PATH];
         if (GetModuleDir(dir, sizeof(dir)) == 0) {
@@ -119,7 +119,8 @@ namespace Config
             return;
         }
 
-        if (Watcher::Start(dir, &Reload, &Lists::LoadAll, &Lists::LoadAll))
+        if (Watcher::Start(dir, &Reload,
+                           &Lists::LoadWhitelist, &Lists::LoadBlacklist))
             LOG_MSG("Config", "Hot reload enabled (event-driven, 200ms debounce)");
         else
             LOG_MSG("Config", "Watcher failed to start, hot reload disabled");

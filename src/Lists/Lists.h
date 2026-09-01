@@ -18,9 +18,9 @@ namespace Lists
         Block,     // 黑名单命中：拦截
     };
 
-    // 读取 Whitelist.ini / Blacklist.ini 并翻转快照（watcher 线程调用）。
-    // 文件缺失时保留当前快照。
-    void LoadAll();
+    void LoadWhitelist();
+
+    void LoadBlacklist();
 
     // 综合判定。text/icon 任一为空串或 nullptr 时跳过对应维度。
     Verdict Evaluate(const char* text, const char* icon);

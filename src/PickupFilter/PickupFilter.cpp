@@ -115,7 +115,7 @@ static __int64 __fastcall PD_Handler(__int64 a1, __int64 a2)
         char line[320] = {};
         int used = 0;
         AppendField(line, sizeof(line), &used, "icon", iconUtf8);
-        PadBytes(line, sizeof(line), &used, 30);
+        PadBytes(line, sizeof(line), &used, 34);
         AppendRaw(line, sizeof(line), &used, " ");
         AppendField(line, sizeof(line), &used, "text", nameUtf8);
         if (shouldBlock)

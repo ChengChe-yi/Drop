@@ -25,7 +25,8 @@ namespace Config
     // 返回本 DLL 所在目录（含尾部反斜杠），结果缓存。
     size_t GetModuleDir(char* buf, size_t bufChars);
 
-    // 启动事件驱动热重载（Config.ini → Reload，Whitelist/Blacklist.ini → Lists::LoadAll）
+    // 启动事件驱动热重载（Config.ini → Reload，Whitelist.ini → Lists::LoadWhitelist，
+    // Blacklist.ini → Lists::LoadBlacklist；初始加载与回调共用同一入口）
     void StartHotReload();
     void StopHotReload();
 }

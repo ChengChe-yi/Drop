@@ -112,9 +112,13 @@ namespace
     }
 }
 
-void Lists::LoadAll()
+void Lists::LoadWhitelist()
 {
     LoadOne("Whitelist.ini", "Whitelist", "PickupSuppress", g_whitelist);
+}
+
+void Lists::LoadBlacklist()
+{
     LoadOne("Blacklist.ini", "Blacklist", nullptr, g_blacklist);
 }
 
