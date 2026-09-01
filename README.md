@@ -81,18 +81,17 @@ Value = 1   ; 1 = 输出日志,0 = 静默
 
 ### 白名单 / 黑名单 (`Whitelist.ini` / `Blacklist.ini`)
 
-名单文件各分两个区: `[Text]` 按名称精确匹配, `[Icon]` 按图标子串匹配:
+名单文件各分两个区: `[Text]` 按名称精确匹配, `[Icon]` 按完整图标名精确匹配:
 
 ```ini
 [Text]
 史莱姆凝液
 
 [Icon]
-UI_ItemIcon_112
+UI_ItemIcon_100012
 ```
 
-判定顺序为 黑名单 > 白名单 > 默认(掉落物默认拦 112 图标族, 交互条目默认放行)。
-
+判定顺序为 黑名单 > 白名单 > 默认(掉落物默认拦怪物, 交互条目默认放行)。
 ---
 
 使用 [MinHook](https://github.com/TsudaKageyu/minhook),完整授权声明见 `src/MinHook` 源码文件头

@@ -21,7 +21,7 @@ namespace
     struct Snapshot
     {
         Section text;   // [Text]：精确匹配
-        Section icon;   // [Icon]：子串匹配
+        Section icon;   // [Icon]：精确匹配
     };
 
     struct FillCtx
@@ -67,8 +67,7 @@ namespace
             m_active.store(cur ^ 1, std::memory_order_release);
             LOG(tag, "Loaded text=%zu icon=%zu", scratch.text.count, scratch.icon.count);
         }
-
-        // text 精确匹配 [Text]；icon 子串匹配 [Icon]；任一命中即 true。
+        
         bool Match(const char* text, const char* icon) const
         {
             const uint32_t idx = m_active.load(std::memory_order_acquire);
@@ -81,7 +80,7 @@ namespace
             }
             if (icon && *icon) {
                 for (size_t i = 0; i < s.icon.count; ++i)
-                    if (strstr(icon, s.icon.items[i]) != nullptr)
+                    if (strcmp(icon, s.icon.items[i]) == 0)
                         return true;
             }
             return false;
