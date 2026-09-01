@@ -40,7 +40,8 @@ namespace
         return true;
     }
 
-    // 双缓冲名单快照：填 inactive 块后 release 翻转，读取方 acquire 锁定。
+    // SRWLOCK 保护的名单快照：Load 组装新快照后锁内替换，Match 共享锁读取。
+    // 组装在锁外栈上完成，锁的持有时间只有一次结构拷贝。
     class Table
     {
     public:
@@ -50,58 +51,66 @@ namespace
                   const char* textSec, const char* iconSec,
                   const char* textSecExtra = nullptr)
         {
-            const uint32_t cur = m_active.load(std::memory_order_relaxed);
-            Snapshot& scratch = m_snap[cur ^ 1];
-            scratch.text.count = 0;
-            scratch.icon.count = 0;
+            Snapshot next = {};
 
-            FillCtx fc { &scratch, &scratch.text };
+            FillCtx fc { &next, &next.text };
             Ini::ForEachEntry(content, textSec, &FillEntryCb, &fc);
             if (textSecExtra) {
-                fc.target = &scratch.text;
+                fc.target = &next.text;
                 Ini::ForEachEntry(content, textSecExtra, &FillEntryCb, &fc);
             }
-            fc.target = &scratch.icon;
+            fc.target = &next.icon;
             Ini::ForEachEntry(content, iconSec, &FillEntryCb, &fc);
 
-            m_active.store(cur ^ 1, std::memory_order_release);
-            LOG(tag, "Loaded text=%zu icon=%zu", scratch.text.count, scratch.icon.count);
+            AcquireSRWLockExclusive(&m_lock);
+            m_snap = next;
+            ReleaseSRWLockExclusive(&m_lock);
+            LOG(tag, "Loaded text=%zu icon=%zu", next.text.count, next.icon.count);
         }
-        
+
         bool Match(const char* text, const char* icon) const
         {
-            const uint32_t idx = m_active.load(std::memory_order_acquire);
-            const Snapshot& s = m_snap[idx];
+            bool hit = false;
+
+            AcquireSRWLockShared(&m_lock);
+            const Snapshot& s = m_snap;
 
             if (text && *text) {
                 for (size_t i = 0; i < s.text.count; ++i)
-                    if (strcmp(s.text.items[i], text) == 0)
-                        return true;
+                    if (strcmp(s.text.items[i], text) == 0) {
+                        hit = true;
+                        break;
+                    }
             }
-            if (icon && *icon) {
+            if (!hit && icon && *icon) {
                 for (size_t i = 0; i < s.icon.count; ++i)
-                    if (strcmp(icon, s.icon.items[i]) == 0)
-                        return true;
+                    if (strcmp(icon, s.icon.items[i]) == 0) {
+                        hit = true;
+                        break;
+                    }
             }
-            return false;
+
+            ReleaseSRWLockShared(&m_lock);
+            return hit;
         }
 
     private:
-        Snapshot              m_snap[2] = {};
-        std::atomic<uint32_t> m_active{0};
+        Snapshot            m_snap = {};
+        mutable SRWLOCK     m_lock = SRWLOCK_INIT;
     };
 
     Table g_whitelist;
     Table g_blacklist;
 
-    void LoadOne(const char* fileName, const char* tag,
+    void LoadOne(const wchar_t* fileName, const char* tag,
                  const char* textSecExtra, Table& table)
     {
-        char path[MAX_PATH];
-        char dir[MAX_PATH];
-        if (Config::GetModuleDir(dir, sizeof(dir)) == 0) return;
-        strcpy_s(path, dir);
-        strcat_s(path, fileName);
+        wchar_t path[MAX_PATH];
+        wchar_t dir[MAX_PATH];
+        if (Config::GetModuleDir(dir, sizeof(dir) / sizeof(wchar_t)) == 0) return;
+        if (wcslen(dir) + wcslen(fileName) + 1 > MAX_PATH) return;
+        wcscpy_s(path, dir);
+        wcscat_s(path, fileName);
 
         size_t sz = 0;
         char* content = Ini::LoadFile(path, &sz, 1 * 1024 * 1024);
@@ -113,12 +122,12 @@ namespace
 
 void Lists::LoadWhitelist()
 {
-    LoadOne("Whitelist.ini", "Whitelist", "PickupSuppress", g_whitelist);
+    LoadOne(L"Whitelist.ini", "Whitelist", "PickupSuppress", g_whitelist);
 }
 
 void Lists::LoadBlacklist()
 {
-    LoadOne("Blacklist.ini", "Blacklist", nullptr, g_blacklist);
+    LoadOne(L"Blacklist.ini", "Blacklist", nullptr, g_blacklist);
 }
 
 Lists::Verdict Lists::Evaluate(const char* text, const char* icon)

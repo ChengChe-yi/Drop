@@ -206,7 +206,7 @@ namespace Watcher
         return 0;
     }
 
-    bool Start(const char* dir,
+    bool Start(const wchar_t* dir,
                void (*onConfigChange)(),
                void (*onWhitelistChange)(),
                void (*onBlacklistChange)())
@@ -218,10 +218,10 @@ namespace Watcher
             !onConfigChange || !onWhitelistChange || !onBlacklistChange)
             return false;
 
-        // GetModuleFileNameA 产出系统代码页 ANSI，CP_ACP 可无损往返。
-        int n = MultiByteToWideChar(CP_ACP, 0, dir, -1, s_dirW, MAX_PATH);
-        if (n <= 0 || n >= MAX_PATH)
+        if (wcslen(dir) >= MAX_PATH)
             return false;
+
+        wcscpy_s(s_dirW, dir);
 
         s_files[0] = { L"Config.ini",    onConfigChange,    0, false };
         s_files[1] = { L"Whitelist.ini", onWhitelistChange, 0, false };

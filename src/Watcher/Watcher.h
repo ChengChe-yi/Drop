@@ -12,9 +12,9 @@
 
 namespace Watcher
 {
-    // dir：待监听目录（ANSI，含尾部反斜杠）。线程创建失败返回 false。
+    // dir：待监听目录（宽字符，含尾部反斜杠）。线程创建失败返回 false。
     // 依次监听 Config.ini / Whitelist.ini / Blacklist.ini。
-    bool Start(const char* dir,
+    bool Start(const wchar_t* dir,
                void (*onConfigChange)(),
                void (*onWhitelistChange)(),
                void (*onBlacklistChange)());

@@ -90,9 +90,6 @@
     <ClInclude Include="src\MinHook\src\buffer.h">
       <Filter>MinHook\src</Filter>
     </ClInclude>
-    <ClInclude Include="src\MinHook\src\hook.h">
-      <Filter>MinHook\src</Filter>
-    </ClInclude>
     <ClInclude Include="src\MinHook\src\trampoline.h">
       <Filter>MinHook\src</Filter>
     </ClInclude>

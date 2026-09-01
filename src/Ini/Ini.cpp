@@ -71,10 +71,10 @@ namespace
     }
 }
 
-char* Ini::LoadFile(const char* path, size_t* outSize, size_t maxBytes)
+char* Ini::LoadFile(const wchar_t* path, size_t* outSize, size_t maxBytes)
 {
     if (outSize) *outSize = 0;
-    HANDLE h = CreateFileA(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
+    HANDLE h = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
                            NULL, OPEN_EXISTING, 0, NULL);
     if (h == INVALID_HANDLE_VALUE) return nullptr;
 

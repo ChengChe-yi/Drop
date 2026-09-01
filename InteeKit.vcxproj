@@ -86,10 +86,11 @@
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <AdditionalDependencies>kernel32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>"$(ProjectDir)upx-5.2.0\upx.exe" --best "$(TargetPath)"</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
+  <Target Name="UpxPackDll" AfterTargets="Link"
+          Condition="'$(Configuration)'=='Release' And '$(LinkSkippedExecution)' != 'true' And Exists('$(ProjectDir)upx-5.2.0\upx.exe')">
+    <Exec Command="&quot;$(ProjectDir)upx-5.2.0\upx.exe&quot; --best &quot;$(TargetPath)&quot;" />
+  </Target>
   <ItemGroup>
     <ClInclude Include="src\Hooks\Hooks.h" />
     <ClInclude Include="src\Patterns\Patterns.h" />
@@ -101,7 +102,6 @@
     <ClInclude Include="src\Ini\Ini.h" />
     <ClInclude Include="src\MinHook\include\MinHook.h" />
     <ClInclude Include="src\MinHook\src\buffer.h" />
-    <ClInclude Include="src\MinHook\src\hook.h" />
     <ClInclude Include="src\MinHook\src\trampoline.h" />
     <ClInclude Include="src\MinHook\src\hde\hde32.h" />
     <ClInclude Include="src\MinHook\src\hde\hde64.h" />

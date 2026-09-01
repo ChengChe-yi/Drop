@@ -20,10 +20,10 @@ namespace Config
     void Reload();
 
     // 返回 Config.ini 完整路径（DLL 同目录），失败返回 0。
-    size_t GetConfigPath(char* buf, size_t bufChars);
+    size_t GetConfigPath(wchar_t* buf, size_t bufChars);
 
     // 返回本 DLL 所在目录（含尾部反斜杠），结果缓存。
-    size_t GetModuleDir(char* buf, size_t bufChars);
+    size_t GetModuleDir(wchar_t* buf, size_t bufChars);
 
     // 启动事件驱动热重载（Config.ini → Reload，Whitelist.ini → Lists::LoadWhitelist，
     // Blacklist.ini → Lists::LoadBlacklist；初始加载与回调共用同一入口）

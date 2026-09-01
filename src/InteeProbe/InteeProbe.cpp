@@ -19,14 +19,17 @@ static std::atomic<bool> g_hooked{ false };
 typedef __int64 (__fastcall* tOriginal2)(__int64, __int64);
 static tOriginal2 g_orig = nullptr;
 
+static const uint8_t kExpectedPrologue[16] = {
+    0x41, 0x57,                     // push r15
+    0x41, 0x56,                     // push r14
+    0x41, 0x55,                     // push r13
+    0x41, 0x54,                     // push r12
+    0x56, 0x57, 0x55, 0x53,         // push rsi, rdi, rbp, rbx
+    0x48, 0x83, 0xEC, 0x68          // sub rsp, 68h
+};
 
-static bool ProbeActive()
-{
-    // 探针无独立开关：输出跟随 [Log]。
-    return Logger::g_logWriteEnabled.load(std::memory_order_acquire);
-}
 
-
+// 追加 key='value'（无尾随空格）。
 static void AppendField(char* buf, int bufChars, int* used,
                         const char* key, const char* value)
 {
@@ -40,8 +43,6 @@ static void AppendRaw(char* buf, int bufChars, int* used, const char* text)
     if (n > 0) *used += n;
 }
 
-
-
 static void PadBytes(char* buf, int bufChars, int* used, int width)
 {
     while (*used < width && *used < bufChars - 1)
@@ -49,8 +50,10 @@ static void PadBytes(char* buf, int bufChars, int* used, int width)
 }
 
 // 固定字段读取 + 黑名单判定。返回是否命中黑名单（供上层跳过原函数）。
-// 本分支原本放行，只有黑名单命中才拦；白名单不参与。
-static bool LogBtnFields(__int64 a2)
+// 拦截判定与 [Log] 解耦：判定始终执行（仍受 [Blacklist] 开关控制），
+// 日志行仅在 [Log] 开启时构建输出——与拾取路径"拦截跟随开关、日志跟随 [Log]"
+// 的语义保持一致。
+static bool EvalBtnFields(__int64 a2, bool logging)
 {
     char nameUtf8[96] = {};
     char dispUtf8[96] = {};
@@ -68,35 +71,40 @@ static bool LogBtnFields(__int64 a2)
     // 图标统一走接口方法 #2（查表，含 NPC 对话的配置回退）。
     InteeBtn::ReadStringUtf8((void*)a2, 2, iconUtf8, 96);
 
-    char line[512] = {};
-    int used = 0;
-    AppendField(line, sizeof(line), &used, "icon", iconUtf8);
-    PadBytes(line, sizeof(line), &used, 34);
-    AppendRaw(line, sizeof(line), &used, " ");
-    if (nameUtf8[0] && dispUtf8[0]) {
-        AppendField(line, sizeof(line), &used, "name", nameUtf8);
-        AppendRaw(line, sizeof(line), &used, " ");
-        AppendField(line, sizeof(line), &used, "disp", dispUtf8);
-    } else {
-        AppendField(line, sizeof(line), &used, "text",
-                    nameUtf8[0] ? nameUtf8 : dispUtf8);
-    }
-
     const bool block = Lists::IsBlacklisted(
         nameUtf8[0] ? nameUtf8 : dispUtf8, iconUtf8);
-    if (block)
-        AppendRaw(line, sizeof(line), &used, " BLOCK");
 
-    LOG("交互类", "%s", line);
+    if (logging)
+    {
+        char line[512] = {};
+        int used = 0;
+        AppendField(line, sizeof(line), &used, "icon", iconUtf8);
+        PadBytes(line, sizeof(line), &used, 34);
+        AppendRaw(line, sizeof(line), &used, " ");
+        if (nameUtf8[0] && dispUtf8[0]) {
+            AppendField(line, sizeof(line), &used, "name", nameUtf8);
+            AppendRaw(line, sizeof(line), &used, " ");
+            AppendField(line, sizeof(line), &used, "disp", dispUtf8);
+        } else {
+            AppendField(line, sizeof(line), &used, "text",
+                        nameUtf8[0] ? nameUtf8 : dispUtf8);
+        }
+        if (block)
+            AppendRaw(line, sizeof(line), &used, " BLOCK");
+
+        LOG("交互类", "%s", line);
+    }
+
     return block;
 }
 
 static __int64 __fastcall ProbeHandler(__int64 a1, __int64 a2)
 {
-    if (a2 && ProbeActive())
+    if (a2)
     {
-        // 名单命中黑名单的交互条目不入面板。
-        if (LogBtnFields(a2))
+        const bool logging =
+            Logger::g_logWriteEnabled.load(std::memory_order_acquire);
+        if (EvalBtnFields(a2, logging))
             return 0;
     }
     return g_orig(a1, a2);
@@ -109,6 +117,14 @@ static bool DoInit()
     if (!g_base) return false;
 
     g_target = g_base + Offsets::RVA::BtnDispatch;
+
+    uint8_t actual[sizeof(kExpectedPrologue)] = {};
+    memcpy(actual, g_target, sizeof(actual));
+    if (memcmp(actual, kExpectedPrologue, sizeof(actual)) != 0) {
+        LOG("交互类", "prologue mismatch at %llX — game updated?",
+            (uint64_t)g_target);
+        return false;
+    }
 
     MH_STATUS st = MH_Initialize();
     if (st != MH_OK && st != MH_ERROR_ALREADY_INITIALIZED) {

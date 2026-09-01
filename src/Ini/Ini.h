@@ -14,7 +14,7 @@ namespace Ini
     // 整读文件到堆缓冲（自动跳过 UTF-8 BOM），调用方 delete[] 释放。
     // 失败返回 nullptr。maxBytes 非 0 时超限直接放弃（防失控文件）。
     //（不叫 ReadFile：避免与 Win32 ReadFile 在命名空间内发生遮蔽。）
-    char* LoadFile(const char* path, size_t* outSize, size_t maxBytes = 0);
+    char* LoadFile(const wchar_t* path, size_t* outSize, size_t maxBytes = 0);
 
     // 在 [section] 块内查 key 的值；找到写入 out（NUL 结尾）并返回 true。
     bool GetValue(const char* content, const char* section, const char* key,
