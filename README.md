@@ -13,7 +13,7 @@
 
 <img src="docs/preview.jpg" width="720" alt="屏蔽效果预览"/>
 
-*掉落物不再弹出拾取提示框,正常交互(烹饪)不受影响*
+*怪物掉落物不再弹出拾取提示框,正常交互(烹饪)不受影响*
 
 </div>
 
@@ -39,13 +39,13 @@
 
 ## 📦 安装
 
-略；支持主流启动器的插件安装
+支持主流启动器的插件安装
 
 安装完成后将以下文件部署到DLL同级目录:
 
 ```
 目录/
-├── InteeKit.dll                 # 插件主 DLL
+├── InteeKit.dll             # 插件主 DLL
 ├── Config.ini               # 主配置文件
 ├── Whitelist.ini            # 白名单配置文件
 └── Blacklist.ini            # 黑名单配置文件
@@ -90,8 +90,7 @@ Value = 1   ; 1 = 输出日志,0 = 静默
 [Icon]
 UI_ItemIcon_100012
 ```
-
-判定顺序为 黑名单 > 白名单 > 默认(掉落物默认拦怪物, 交互条目默认放行)。
+#### 判定顺序为 黑名单 > 白名单 > 默认。
 ---
 
 使用 [MinHook](https://github.com/TsudaKageyu/minhook),完整授权声明见 `src/MinHook` 源码文件头
