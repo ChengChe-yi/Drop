@@ -24,10 +24,12 @@ namespace
         Section icon;   // [Icon]：精确匹配
     };
 
+    // tag：名单名（Whitelist/Blacklist），what：区段名（Text/Icon）——仅用于告警日志。
     struct FillCtx
     {
-        Snapshot* snap;
-        Section*  target;
+        Section*    target;
+        const char* tag;
+        const char* what;
     };
 
     bool FillEntryCb(const char* value, void* ctx)
@@ -35,6 +37,17 @@ namespace
         FillCtx* fc = (FillCtx*)ctx;
         Section* s = fc->target;
         if (s->count >= kMaxEntries) return false;   // 名单满，提前终止。
+
+        const size_t len = strlen(value);
+        if (len >= kEntryLen) {
+            // 槽位定长 kEntryLen 字节（最多 127 字符 + NUL）。超长条目若硬拷，
+            // strcpy_s 会触发 CRT invalid-parameter handler 直接终止进程；
+            // 名单是用户可编辑数据，这里跳过并告警，保持 fail-soft。
+            LOG(fc->tag, "[%s] #%zu too long (%zu >= %zu), skipped",
+                fc->what, s->count, len, (size_t)kEntryLen);
+            return true;
+        }
+
         strcpy_s(s->items[s->count], kEntryLen, value);
         ++s->count;
         return true;
@@ -53,13 +66,15 @@ namespace
         {
             Snapshot next = {};
 
-            FillCtx fc { &next, &next.text };
+            FillCtx fc { &next.text, tag, textSec };
             Ini::ForEachEntry(content, textSec, &FillEntryCb, &fc);
             if (textSecExtra) {
                 fc.target = &next.text;
+                fc.what   = textSecExtra;
                 Ini::ForEachEntry(content, textSecExtra, &FillEntryCb, &fc);
             }
             fc.target = &next.icon;
+            fc.what   = iconSec;
             Ini::ForEachEntry(content, iconSec, &FillEntryCb, &fc);
 
             AcquireSRWLockExclusive(&m_lock);

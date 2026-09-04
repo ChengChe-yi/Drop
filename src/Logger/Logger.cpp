@@ -7,6 +7,9 @@ namespace Logger
 {
     std::atomic<bool> g_logWriteEnabled{true};
 
+    // g_logPath / g_logPathReady 仅在 g_logLock 保护下读写：
+    // readiness 判断也必须在锁内做，否则 CloseLog 之后排队进入的写者
+    // 会因只查 g_logFile==nullptr 而重新 _wfopen_s，让已关闭的日志复活。
     static wchar_t g_logPath[MAX_PATH] = {};
     static bool    g_logPathReady = false;
     static SRWLOCK g_logLock = SRWLOCK_INIT;
@@ -51,31 +54,43 @@ namespace Logger
 
     void InitLogFile(HMODULE hModule)
     {
-        if (g_logPathReady) return;
+        AcquireSRWLockExclusive(&g_logLock);
 
-        wchar_t modulePath[MAX_PATH] = {};
-        if (!hModule || GetModuleFileNameW(hModule, modulePath, MAX_PATH) == 0)
-            GetModuleFileNameW(nullptr, modulePath, MAX_PATH);
+        if (!g_logPathReady) {
+            wchar_t modulePath[MAX_PATH] = {};
+            if (!hModule || GetModuleFileNameW(hModule, modulePath, MAX_PATH) == 0)
+                GetModuleFileNameW(nullptr, modulePath, MAX_PATH);
 
-        wchar_t* lastSlash = wcsrchr(modulePath, L'\\');
-        if (lastSlash)
-            wcscpy_s(lastSlash + 1, MAX_PATH - (lastSlash - modulePath + 1), L"InteeKit.log");
-        else
-            wcscpy_s(modulePath, L"InteeKit.log");
+            wchar_t* lastSlash = wcsrchr(modulePath, L'\\');
+            if (lastSlash)
+                wcscpy_s(lastSlash + 1, MAX_PATH - (lastSlash - modulePath + 1), L"InteeKit.log");
+            else
+                wcscpy_s(modulePath, L"InteeKit.log");
 
-        wcscpy_s(g_logPath, modulePath);
-        g_logPathReady = (g_logPath[0] != 0);
+            wcscpy_s(g_logPath, modulePath);
+            g_logPathReady = (g_logPath[0] != 0);
+        }
 
         if (g_logPathReady && !g_idleTimer)
             g_idleTimer = CreateThreadpoolTimer(LogIdleCloseCb, nullptr, nullptr);
+
+        ReleaseSRWLockExclusive(&g_logLock);
     }
 
     void WriteLog(const char* text)
     {
-        if (!g_logWriteEnabled.load(std::memory_order_acquire) || !g_logPathReady)
+        // 快路径只查原子开关；g_logPathReady 必须在锁内判断（见上方说明），
+        // 否则与 CloseLog 存在"先过检查、入锁后复活日志"的竞态。
+        if (!g_logWriteEnabled.load(std::memory_order_acquire))
             return;
 
         AcquireSRWLockExclusive(&g_logLock);
+
+        // CloseLog 已执行（卸载/退出收尾）则丢弃后续写入，不再重开文件。
+        if (!g_logPathReady) {
+            ReleaseSRWLockExclusive(&g_logLock);
+            return;
+        }
 
         // 句柄不在了才重新打开；首次打开空文件时补 BOM。
         if (!g_logFile) {

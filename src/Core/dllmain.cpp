@@ -4,14 +4,13 @@
 #include "Config.h"
 #include "Logger.h"
 
-// DllMain 只做最小工作：存句柄、建事件、建 worker 线程。
-// loader lock 期间不做文件 IO / VirtualProtect / 子线程创建，
-// 全部初始化与清理都在 worker 中执行。
 namespace
 {
     HMODULE g_hModule = nullptr;
     HANDLE  g_worker  = nullptr;
     HANDLE  g_stop    = nullptr;
+
+    static constexpr DWORD kWorkerStopWaitMs = 5000;
 
     DWORD WINAPI WorkerProc(LPVOID)
     {
@@ -42,7 +41,6 @@ BOOL APIENTRY DllMain(HMODULE hModule,
         DisableThreadLibraryCalls(hModule);
         g_hModule = hModule;
 
-        // 注入型插件不支持动态卸载
         {
             HMODULE pinned = nullptr;
             if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_PIN |
@@ -64,6 +62,16 @@ BOOL APIENTRY DllMain(HMODULE hModule,
         break;
 
     case DLL_PROCESS_DETACH:
+        if (g_stop) {
+            SetEvent(g_stop);
+            if (g_worker) {
+                WaitForSingleObject(g_worker, kWorkerStopWaitMs);
+                CloseHandle(g_worker);
+                g_worker = nullptr;
+            }
+            CloseHandle(g_stop);
+            g_stop = nullptr;
+        }
         break;
     }
     return TRUE;
